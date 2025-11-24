@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 更新：禁用缩放，锁定视口 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>nChat</title>
     <script src="js/marked.min.js"></script>
     <script src="js/purify.min.js"></script>
@@ -38,7 +39,7 @@
             padding: 0;
             font-family: var(--font-family);
             color: var(--text-color);
-            overflow: hidden;
+            overflow: hidden; /* 防止滚动条导致页面晃动 */
         }
         body {
             font-size: 17px;
@@ -58,6 +59,8 @@
             max-width: 900px;
             margin: 0 auto;
             background-color: rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
         }
         .toolbar {
             position: absolute;
@@ -146,11 +149,31 @@
             transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s, padding 0.5s;
         }
         .settings-panel.open {
-            max-height: 500px;
+            max-height: 80vh; /* 增加最大高度以容纳更多字段 */
+            overflow-y: auto;
             opacity: 1;
             padding: 20px;
         }
         .settings-panel .input-group { display: flex; flex-direction: column; gap: 5px; }
+        
+        /* 新增：配置选择行的样式 */
+        .settings-panel .config-select-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .settings-panel select {
+            background-color: var(--input-bg-color); 
+            color: var(--text-color); 
+            border: 1px solid var(--glass-border-color);
+            border-radius: 8px; 
+            padding: 10px; 
+            font-size: 0.9em; 
+            outline: none;
+            flex-grow: 1;
+            cursor: pointer;
+        }
+        
         .settings-panel label { font-size: 0.8em; color: #a0a0a0; }
         .settings-panel input, .settings-panel textarea {
             background-color: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--glass-border-color);
@@ -159,8 +182,9 @@
         }
         .settings-panel textarea { resize: vertical; min-height: 60px; }
         .settings-panel input:focus, .settings-panel textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.4); }
-        .settings-panel .button-group { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
-        .btn { border: none; border-radius: 8px; padding: 10px 18px; font-size: 0.9em; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .settings-panel .button-group { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 5px; flex-wrap: wrap;}
+        .btn { border: none; border-radius: 8px; padding: 10px 18px; font-size: 0.9em; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn-sm { padding: 10px; min-width: 40px; display: flex; align-items: center; justify-content: center;}
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-primary:hover { background-color: #0077ed; }
         .btn-secondary { background-color: #3a3a3c; color: var(--text-color); }
@@ -179,6 +203,7 @@
             flex-direction: column;
             gap: 18px;
             transition: padding-bottom 0.2s ease-out;
+            flex-grow: 1;
         }
         
         .message {
@@ -198,13 +223,12 @@
         }
         .message-content details[open] > summary::before { transform: rotate(90deg); }
         
-        /* --- ANIMATION FIX START --- */
         .message-content .reasoning-wrapper {
             max-height: 0;
             opacity: 0;
-            overflow: hidden; /* Hide content and scrollbar when collapsed */
+            overflow: hidden;
             margin-top: 0;
-            padding: 0 15px; /* Apply horizontal padding but zero vertical padding when collapsed */
+            padding: 0 15px;
             background-color: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), 
@@ -213,18 +237,16 @@
                         padding 0.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .message-content details[open] > .reasoning-wrapper {
-            max-height: 250px; /* Fixed height for the expanded view */
+            max-height: 250px;
             opacity: 1;
             margin-top: 10px;
-            padding: 12px 15px; /* Full padding when expanded */
-            overflow-y: auto; /* Show scrollbar if content overflows the fixed height */
+            padding: 12px 15px;
+            overflow-y: auto;
         }
         .message-content .reasoning-content {
-            /* This inner div now only serves as a container for JS, no visual styling needed */
             font-size: 0.9em;
             color: #c0c0c0;
         }
-        /* --- ANIMATION FIX END --- */
         
         .message-content p { margin-top: 0; margin-bottom: 1em; }
         .message-content p:last-child { margin-bottom: 0; }
@@ -546,6 +568,23 @@
         </div>
         <div class="settings-panel" id="settings-panel">
             <div class="input-group">
+                <label for="config-select">配置选择</label>
+                <div class="config-select-row">
+                    <select id="config-select"></select>
+                    <button id="add-config-btn" class="btn btn-secondary btn-sm" title="新建配置">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    </button>
+                    <button id="delete-config-btn" class="btn btn-destructive btn-sm" title="删除配置">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="config-name">配置名称</label>
+                <input type="text" id="config-name" placeholder="例如: GPT-4o 编程助手">
+            </div>
+            <hr style="border:0; border-top:1px solid var(--glass-border-color); width:100%; margin: 5px 0;">
+            <div class="input-group">
                 <label for="system-prompt">系统提示词 (System Prompt)</label>
                 <textarea id="system-prompt" rows="3" placeholder="例如: 你是一个专业的全栈工程师，请用中文回答。"></textarea>
             </div>
@@ -606,8 +645,14 @@
             const getEl = id => document.getElementById(id);
             
             const settingsPanel = getEl('settings-panel'), toggleSettingsBtn = getEl('toggle-settings-btn');
+            // Settings Inputs
+            const configSelect = getEl('config-select');
+            const addConfigBtn = getEl('add-config-btn');
+            const delConfigBtn = getEl('delete-config-btn');
+            const configNameInput = getEl('config-name');
             const systemPromptInput = getEl('system-prompt'), apiUrlInput = getEl('api-url'), apiKeyInput = getEl('api-key'), modelIdInput = getEl('model-id');
             const saveSettingsBtn = getEl('save-settings-btn'), saveStatus = getEl('save-status');
+            
             const clearChatBtn = getEl('clear-chat-btn'), chatContainer = getEl('chat-container');
             const userInput = getEl('user-input'), sendBtn = getEl('send-btn');
             const uploadBtn = getEl('upload-btn'), imageInput = getEl('image-input'), imagePreviewContainer = getEl('image-preview-container');
@@ -630,11 +675,17 @@
             const inputAreaContainer = getEl('input-area-container');
             
             let conversationHistory = [];
-            let settings = {};
+            // Updated Settings Structure
+            let configList = [];
+            let currentConfigId = null;
+            let currentSettings = {}; // Holds the active settings object
+            
             let stagedImages = [];
             let isAssistantResponding = false;
             let currentEditingMessageId = null;
             const MAX_IMAGES = 5;
+            
+            const generateId = () => Math.random().toString(36).substr(2, 9);
             
             const copyTextToClipboard = (text) => {
                 if (navigator.clipboard && window.isSecureContext) {
@@ -703,24 +754,152 @@
                 });
             };
             
+            // --- Config Management Start ---
+            
+            const createDefaultConfig = () => ({
+                id: generateId(),
+                name: '默认配置',
+                apiUrl: 'https://api.openai.com/v1/chat/completions',
+                apiKey: '',
+                modelId: 'gpt-4o',
+                systemPrompt: ''
+            });
+
+            const renderConfigSelect = () => {
+                configSelect.innerHTML = '';
+                configList.forEach(config => {
+                    const option = document.createElement('option');
+                    option.value = config.id;
+                    option.textContent = config.name || '(未命名配置)';
+                    configSelect.appendChild(option);
+                });
+                if (currentConfigId) {
+                    configSelect.value = currentConfigId;
+                }
+            };
+
+            const loadConfigToUI = (id) => {
+                const config = configList.find(c => c.id === id);
+                if (!config) return;
+                
+                currentConfigId = id;
+                currentSettings = { ...config }; // Update active settings
+                
+                configNameInput.value = config.name || '';
+                apiUrlInput.value = config.apiUrl || '';
+                apiKeyInput.value = config.apiKey || '';
+                modelIdInput.value = config.modelId || '';
+                systemPromptInput.value = config.systemPrompt || '';
+            };
+            
             const loadSettings = () => {
                 const savedSettings = localStorage.getItem('nchat-settings');
-                settings = savedSettings ? JSON.parse(savedSettings) : {
-                    apiUrl: 'https://api.openai.com/v1/chat/completions', apiKey: '', modelId: 'gpt-4o', systemPrompt: ''
-                };
-                apiUrlInput.value = settings.apiUrl; apiKeyInput.value = settings.apiKey;
-                modelIdInput.value = settings.modelId; systemPromptInput.value = settings.systemPrompt;
+                // Check if it's the old format (single object) or new format (array inside object or raw array)
+                // We'll store new format as JSON string of: { currentId: '...', configs: [...] }
+                
+                let loadedData = null;
+                try {
+                    if (savedSettings) loadedData = JSON.parse(savedSettings);
+                } catch(e) { console.error('Settings parse error', e); }
+
+                if (!loadedData) {
+                    // Initialize clean
+                    const def = createDefaultConfig();
+                    configList = [def];
+                    currentConfigId = def.id;
+                } else if (!loadedData.configs) {
+                    // Migration from old version (Single Object)
+                    const newConfig = createDefaultConfig();
+                    newConfig.name = '旧配置备份';
+                    newConfig.apiUrl = loadedData.apiUrl || newConfig.apiUrl;
+                    newConfig.apiKey = loadedData.apiKey || '';
+                    newConfig.modelId = loadedData.modelId || newConfig.modelId;
+                    newConfig.systemPrompt = loadedData.systemPrompt || '';
+                    
+                    configList = [newConfig];
+                    currentConfigId = newConfig.id;
+                    saveSettings(); // Save immediately in new format
+                } else {
+                    // New format
+                    configList = loadedData.configs;
+                    currentConfigId = loadedData.currentId;
+                    // Validate current ID exists
+                    if (!configList.find(c => c.id === currentConfigId)) {
+                        currentConfigId = configList[0]?.id || createDefaultConfig().id;
+                        if (configList.length === 0) configList = [createDefaultConfig()];
+                    }
+                }
+                
+                renderConfigSelect();
+                loadConfigToUI(currentConfigId);
             };
             
             const saveSettings = () => {
-                settings = {
-                    apiUrl: apiUrlInput.value.trim(), apiKey: apiKeyInput.value.trim(),
-                    modelId: modelIdInput.value.trim(), systemPrompt: systemPromptInput.value.trim()
+                // Update current config object in list from UI
+                const updatedConfig = {
+                    id: currentConfigId,
+                    name: configNameInput.value.trim() || '未命名配置',
+                    apiUrl: apiUrlInput.value.trim(),
+                    apiKey: apiKeyInput.value.trim(),
+                    modelId: modelIdInput.value.trim(),
+                    systemPrompt: systemPromptInput.value.trim()
                 };
-                localStorage.setItem('nchat-settings', JSON.stringify(settings));
+                
+                const idx = configList.findIndex(c => c.id === currentConfigId);
+                if (idx !== -1) {
+                    configList[idx] = updatedConfig;
+                } else {
+                    configList.push(updatedConfig);
+                }
+                
+                currentSettings = updatedConfig;
+                renderConfigSelect(); // Name might have changed
+                
+                const dataToSave = {
+                    currentId: currentConfigId,
+                    configs: configList
+                };
+                
+                localStorage.setItem('nchat-settings', JSON.stringify(dataToSave));
+                
                 saveStatus.style.opacity = '1';
                 setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
             };
+
+            const handleAddConfig = () => {
+                const newConfig = createDefaultConfig();
+                newConfig.name = '新配置 ' + (configList.length + 1);
+                configList.push(newConfig);
+                renderConfigSelect();
+                configSelect.value = newConfig.id;
+                loadConfigToUI(newConfig.id);
+                // Optionally save immediately
+                // saveSettings(); 
+            };
+
+            const handleDeleteConfig = async () => {
+                if (configList.length <= 1) {
+                    showCustomPrompt('无法删除', '至少保留一个配置。');
+                    return;
+                }
+                const confirmed = await showCustomPrompt('删除配置', '确定要删除当前选中的配置吗？', { isConfirm: true, isDestructive: true });
+                if (confirmed) {
+                    configList = configList.filter(c => c.id !== currentConfigId);
+                    currentConfigId = configList[0].id;
+                    renderConfigSelect();
+                    loadConfigToUI(currentConfigId);
+                    saveSettings();
+                }
+            };
+
+            configSelect.addEventListener('change', (e) => {
+                loadConfigToUI(e.target.value);
+            });
+
+            addConfigBtn.addEventListener('click', handleAddConfig);
+            delConfigBtn.addEventListener('click', handleDeleteConfig);
+
+            // --- Config Management End ---
             
             const clearConversation = async () => {
                 if (isAssistantResponding) return;
@@ -936,13 +1115,14 @@
                 
                 try {
                     const historyToSend = conversationHistory.map(({ id, ...rest }) => rest);
-                    if (settings.systemPrompt) {
-                        historyToSend.unshift({ role: 'system', content: settings.systemPrompt });
+                    // Use currentSettings instead of local vars
+                    if (currentSettings.systemPrompt) {
+                        historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
                     }
-                    const response = await fetch(settings.apiUrl, {
+                    const response = await fetch(currentSettings.apiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.apiKey}` },
-                        body: JSON.stringify({ model: settings.modelId, messages: historyToSend, stream: true, max_tokens: 4096 })
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
+                        body: JSON.stringify({ model: currentSettings.modelId, messages: historyToSend, stream: true, max_tokens: 4096 })
                     });
                     typingIndicator.remove();
                     if (!response.ok) {
@@ -1019,7 +1199,7 @@
                 if (isAssistantResponding) return;
                 const userText = userInput.value.trim();
                 if (!userText && stagedImages.length === 0) return;
-                if (!settings.apiKey || !settings.apiUrl || !settings.modelId) {
+                if (!currentSettings.apiKey || !currentSettings.apiUrl || !currentSettings.modelId) {
                     addMessage({ role: 'error', content: '请先完成并保存 API 配置。' }); return;
                 }
                 const userMessageContent = [{ type: 'text', text: userText }];
@@ -1066,8 +1246,13 @@
             
             exportSettingsBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const settingsToExport = { apiUrl: settings.apiUrl, modelId: settings.modelId, systemPrompt: settings.systemPrompt };
-                downloadBlob(new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' }), 'nchat-settings.json');
+                // Export current config only or all configs? 
+                // Implementing export for ALL settings for backup purposes.
+                const settingsToExport = { 
+                    currentId: currentConfigId,
+                    configs: configList
+                };
+                downloadBlob(new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' }), 'nchat-all-settings.json');
             });
             
             exportConversationBtn.addEventListener('click', (e) => {
@@ -1101,16 +1286,35 @@
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     try {
-                        const importedSettings = JSON.parse(event.target.result);
-                        if (importedSettings.apiUrl && importedSettings.modelId) {
-                            apiUrlInput.value = importedSettings.apiUrl;
-                            modelIdInput.value = importedSettings.modelId;
-                            systemPromptInput.value = importedSettings.systemPrompt || '';
-                            apiKeyInput.value = '';
+                        const importedData = JSON.parse(event.target.result);
+                        
+                        // Handle legacy single config import
+                        if (importedData.apiUrl && importedData.modelId && !importedData.configs) {
+                            const newConfig = createDefaultConfig();
+                            newConfig.name = '导入的配置';
+                            newConfig.apiUrl = importedData.apiUrl;
+                            newConfig.modelId = importedData.modelId;
+                            newConfig.systemPrompt = importedData.systemPrompt || '';
+                            // Note: We don't import API Key for security/behavior consistency unless we want to
+                            // For user convenience, we import empty key or prompt user
+                            
+                            configList.push(newConfig);
+                            currentConfigId = newConfig.id;
+                            renderConfigSelect();
+                            loadConfigToUI(currentConfigId);
                             saveSettings();
-                            showCustomPrompt('导入成功', '设置已成功导入并保存！<br>请重新输入您的 API Key。');
+                            showCustomPrompt('导入成功', '单个配置已导入！<br>请重新输入您的 API Key。');
+                        } 
+                        // Handle new full backup import
+                        else if (importedData.configs && Array.isArray(importedData.configs)) {
+                            configList = importedData.configs;
+                            currentConfigId = importedData.currentId || configList[0]?.id;
+                            renderConfigSelect();
+                            loadConfigToUI(currentConfigId);
+                            saveSettings();
+                            showCustomPrompt('导入成功', `已恢复 ${configList.length} 个配置。`);
                         } else {
-                            throw new Error('无效的设置文件格式。缺少 apiUrl 或 modelId。');
+                            throw new Error('无效的设置文件格式。');
                         }
                     } catch (error) { showCustomPrompt('导入失败', error.message); } 
                     finally { e.target.value = ''; }
