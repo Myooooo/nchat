@@ -2,7 +2,6 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 更新：禁用缩放，锁定视口 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>nChat</title>
     <script src="js/marked.min.js"></script>
@@ -39,7 +38,7 @@
             padding: 0;
             font-family: var(--font-family);
             color: var(--text-color);
-            overflow: hidden; /* 防止滚动条导致页面晃动 */
+            overflow: hidden;
         }
         body {
             font-size: 17px;
@@ -77,7 +76,7 @@
             backdrop-filter: var(--glass-backdrop-filter);
             -webkit-backdrop-filter: var(--glass-backdrop-filter);
         }
-        .toolbar h1 { font-size: 1.2em; margin: 0; font-weight: 600; }
+        .toolbar h1 { font-size: 1.1em; margin: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
         .toolbar-actions { display: flex; gap: 10px; }
         .toolbar-actions button {
             background: var(--input-bg-color);
@@ -149,14 +148,13 @@
             transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s, padding 0.5s;
         }
         .settings-panel.open {
-            max-height: 80vh; /* 增加最大高度以容纳更多字段 */
+            max-height: 85vh;
             overflow-y: auto;
             opacity: 1;
             padding: 20px;
         }
         .settings-panel .input-group { display: flex; flex-direction: column; gap: 5px; }
         
-        /* 新增：配置选择行的样式 */
         .settings-panel .config-select-row {
             display: flex;
             gap: 10px;
@@ -183,6 +181,66 @@
         .settings-panel textarea { resize: vertical; min-height: 60px; }
         .settings-panel input:focus, .settings-panel textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.4); }
         .settings-panel .button-group { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 5px; flex-wrap: wrap;}
+        
+        /* Advanced Settings Styles */
+        .advanced-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 0.9em;
+            cursor: pointer;
+            text-align: left;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: fit-content;
+        }
+        .advanced-toggle-btn:hover { text-decoration: underline; }
+        .advanced-toggle-btn::after {
+            content: '▼';
+            font-size: 0.8em;
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        .advanced-toggle-btn.expanded::after { transform: rotate(180deg); }
+        
+        .advanced-settings-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s, margin 0.4s;
+            opacity: 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-top: 0;
+        }
+        .advanced-settings-container.show {
+            max-height: 300px;
+            opacity: 1;
+            margin-top: 5px;
+            padding: 15px;
+            border: 1px solid var(--glass-border-color);
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .slider-row:last-child { margin-bottom: 0; }
+        .slider-row label { width: 90px; flex-shrink: 0; }
+        .slider-row input[type="range"] {
+            flex-grow: 1;
+            padding: 0;
+            height: 6px;
+            cursor: pointer;
+        }
+        .slider-row input[type="number"] {
+            width: 50px;
+            padding: 5px;
+            text-align: center;
+        }
+
         .btn { border: none; border-radius: 8px; padding: 10px 18px; font-size: 0.9em; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .btn-sm { padding: 10px; min-width: 40px; display: flex; align-items: center; justify-content: center;}
         .btn-primary { background-color: var(--primary-color); color: white; }
@@ -552,7 +610,7 @@
 <body>
     <div class="app-container">
         <div class="toolbar">
-            <h1>nChat</h1>
+            <h1 id="app-title">nChat</h1>
             <div class="toolbar-actions">
                 <button id="toggle-settings-btn" title="设置">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"></path></svg>
@@ -591,6 +649,26 @@
             <div class="input-group"><label for="api-url">API URL</label><input type="text" id="api-url"></div>
             <div class="input-group"><label for="api-key">API Key</label><input type="password" id="api-key"></div>
             <div class="input-group"><label for="model-id">Model ID</label><input type="text" id="model-id" placeholder="例如: gpt-4-vision-preview"></div>
+            
+            <!-- Advanced Settings Section -->
+            <button id="advanced-toggle-btn" class="advanced-toggle-btn">高级参数设置</button>
+            <div id="advanced-settings-container" class="advanced-settings-container">
+                <div class="input-group">
+                    <div class="slider-row">
+                        <label for="temp-slider">温度<br>(Temperature)</label>
+                        <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="1">
+                        <input type="number" id="temp-input" min="0" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="slider-row">
+                        <label for="topp-slider">Top P</label>
+                        <input type="range" id="topp-slider" min="0" max="2" step="0.05" value="0.95">
+                        <input type="number" id="topp-input" min="0" max="2" step="0.05" value="0.95">
+                    </div>
+                </div>
+            </div>
+            
             <div class="button-group">
                 <span id="save-status">已保存</span>
                 <input type="file" id="import-settings-input" hidden accept=".json">
@@ -644,6 +722,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const getEl = id => document.getElementById(id);
             
+            const appTitle = getEl('app-title');
             const settingsPanel = getEl('settings-panel'), toggleSettingsBtn = getEl('toggle-settings-btn');
             // Settings Inputs
             const configSelect = getEl('config-select');
@@ -653,6 +732,12 @@
             const systemPromptInput = getEl('system-prompt'), apiUrlInput = getEl('api-url'), apiKeyInput = getEl('api-key'), modelIdInput = getEl('model-id');
             const saveSettingsBtn = getEl('save-settings-btn'), saveStatus = getEl('save-status');
             
+            // Advanced Settings Inputs
+            const advancedToggleBtn = getEl('advanced-toggle-btn');
+            const advancedSettingsContainer = getEl('advanced-settings-container');
+            const tempSlider = getEl('temp-slider'), tempInput = getEl('temp-input');
+            const toppSlider = getEl('topp-slider'), toppInput = getEl('topp-input');
+
             const clearChatBtn = getEl('clear-chat-btn'), chatContainer = getEl('chat-container');
             const userInput = getEl('user-input'), sendBtn = getEl('send-btn');
             const uploadBtn = getEl('upload-btn'), imageInput = getEl('image-input'), imagePreviewContainer = getEl('image-preview-container');
@@ -675,10 +760,9 @@
             const inputAreaContainer = getEl('input-area-container');
             
             let conversationHistory = [];
-            // Updated Settings Structure
             let configList = [];
             let currentConfigId = null;
-            let currentSettings = {}; // Holds the active settings object
+            let currentSettings = {}; 
             
             let stagedImages = [];
             let isAssistantResponding = false;
@@ -687,6 +771,28 @@
             
             const generateId = () => Math.random().toString(36).substr(2, 9);
             
+            // --- Helper Functions ---
+            
+            const syncInputs = (range, number) => {
+                range.addEventListener('input', () => number.value = range.value);
+                number.addEventListener('input', () => range.value = number.value);
+            };
+            syncInputs(tempSlider, tempInput);
+            syncInputs(toppSlider, toppInput);
+
+            // Toggle Advanced Section
+            advancedToggleBtn.addEventListener('click', () => {
+                const isExpanded = advancedSettingsContainer.classList.toggle('show');
+                advancedToggleBtn.classList.toggle('expanded', isExpanded);
+                // Update current settings immediately for "Immediate Effect" logic
+                currentSettings.enableAdvanced = isExpanded;
+                // If opening, ensure values are synced from UI state
+                if(isExpanded) {
+                    currentSettings.temperature = parseFloat(tempInput.value);
+                    currentSettings.top_p = parseFloat(toppInput.value);
+                }
+            });
+
             const copyTextToClipboard = (text) => {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -754,7 +860,7 @@
                 });
             };
             
-            // --- Config Management Start ---
+            // --- Config Management ---
             
             const createDefaultConfig = () => ({
                 id: generateId(),
@@ -762,7 +868,11 @@
                 apiUrl: 'https://api.openai.com/v1/chat/completions',
                 apiKey: '',
                 modelId: 'gpt-4o',
-                systemPrompt: ''
+                systemPrompt: '',
+                // Advanced params defaults
+                enableAdvanced: false,
+                temperature: 1.0,
+                top_p: 0.95
             });
 
             const renderConfigSelect = () => {
@@ -783,47 +893,60 @@
                 if (!config) return;
                 
                 currentConfigId = id;
-                currentSettings = { ...config }; // Update active settings
+                currentSettings = { ...config }; // Update global current settings
                 
+                // Update Title
+                appTitle.textContent = `nChat | ${config.name || '未命名配置'}`;
+                
+                // Inputs
                 configNameInput.value = config.name || '';
                 apiUrlInput.value = config.apiUrl || '';
                 apiKeyInput.value = config.apiKey || '';
                 modelIdInput.value = config.modelId || '';
                 systemPromptInput.value = config.systemPrompt || '';
+                
+                // Advanced Inputs
+                tempInput.value = config.temperature ?? 1.0;
+                tempSlider.value = config.temperature ?? 1.0;
+                toppInput.value = config.top_p ?? 0.95;
+                toppSlider.value = config.top_p ?? 0.95;
+                
+                // Toggle State
+                const shouldShow = config.enableAdvanced || false;
+                if (shouldShow) {
+                    advancedSettingsContainer.classList.add('show');
+                    advancedToggleBtn.classList.add('expanded');
+                } else {
+                    advancedSettingsContainer.classList.remove('show');
+                    advancedToggleBtn.classList.remove('expanded');
+                }
             };
             
             const loadSettings = () => {
                 const savedSettings = localStorage.getItem('nchat-settings');
-                // Check if it's the old format (single object) or new format (array inside object or raw array)
-                // We'll store new format as JSON string of: { currentId: '...', configs: [...] }
-                
                 let loadedData = null;
                 try {
                     if (savedSettings) loadedData = JSON.parse(savedSettings);
                 } catch(e) { console.error('Settings parse error', e); }
 
                 if (!loadedData) {
-                    // Initialize clean
                     const def = createDefaultConfig();
                     configList = [def];
                     currentConfigId = def.id;
                 } else if (!loadedData.configs) {
-                    // Migration from old version (Single Object)
+                    // Migration
                     const newConfig = createDefaultConfig();
                     newConfig.name = '旧配置备份';
                     newConfig.apiUrl = loadedData.apiUrl || newConfig.apiUrl;
                     newConfig.apiKey = loadedData.apiKey || '';
                     newConfig.modelId = loadedData.modelId || newConfig.modelId;
                     newConfig.systemPrompt = loadedData.systemPrompt || '';
-                    
                     configList = [newConfig];
                     currentConfigId = newConfig.id;
-                    saveSettings(); // Save immediately in new format
+                    saveSettings(); 
                 } else {
-                    // New format
                     configList = loadedData.configs;
                     currentConfigId = loadedData.currentId;
-                    // Validate current ID exists
                     if (!configList.find(c => c.id === currentConfigId)) {
                         currentConfigId = configList[0]?.id || createDefaultConfig().id;
                         if (configList.length === 0) configList = [createDefaultConfig()];
@@ -835,14 +958,17 @@
             };
             
             const saveSettings = () => {
-                // Update current config object in list from UI
                 const updatedConfig = {
                     id: currentConfigId,
                     name: configNameInput.value.trim() || '未命名配置',
                     apiUrl: apiUrlInput.value.trim(),
                     apiKey: apiKeyInput.value.trim(),
                     modelId: modelIdInput.value.trim(),
-                    systemPrompt: systemPromptInput.value.trim()
+                    systemPrompt: systemPromptInput.value.trim(),
+                    // Save advanced params regardless of visibility to remember them
+                    enableAdvanced: advancedSettingsContainer.classList.contains('show'),
+                    temperature: parseFloat(tempInput.value),
+                    top_p: parseFloat(toppInput.value)
                 };
                 
                 const idx = configList.findIndex(c => c.id === currentConfigId);
@@ -853,7 +979,8 @@
                 }
                 
                 currentSettings = updatedConfig;
-                renderConfigSelect(); // Name might have changed
+                renderConfigSelect();
+                appTitle.textContent = `nChat | ${updatedConfig.name}`;
                 
                 const dataToSave = {
                     currentId: currentConfigId,
@@ -873,8 +1000,6 @@
                 renderConfigSelect();
                 configSelect.value = newConfig.id;
                 loadConfigToUI(newConfig.id);
-                // Optionally save immediately
-                // saveSettings(); 
             };
 
             const handleDeleteConfig = async () => {
@@ -899,7 +1024,7 @@
             addConfigBtn.addEventListener('click', handleAddConfig);
             delConfigBtn.addEventListener('click', handleDeleteConfig);
 
-            // --- Config Management End ---
+            // --- Chat Logic ---
             
             const clearConversation = async () => {
                 if (isAssistantResponding) return;
@@ -1115,15 +1240,29 @@
                 
                 try {
                     const historyToSend = conversationHistory.map(({ id, ...rest }) => rest);
-                    // Use currentSettings instead of local vars
                     if (currentSettings.systemPrompt) {
                         historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
                     }
+                    
+                    const payload = { 
+                        model: currentSettings.modelId, 
+                        messages: historyToSend, 
+                        stream: true, 
+                        max_tokens: 4096 
+                    };
+                    
+                    // Advanced Parameters Logic
+                    if (currentSettings.enableAdvanced) {
+                        payload.temperature = parseFloat(currentSettings.temperature);
+                        payload.top_p = parseFloat(currentSettings.top_p);
+                    }
+
                     const response = await fetch(currentSettings.apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
-                        body: JSON.stringify({ model: currentSettings.modelId, messages: historyToSend, stream: true, max_tokens: 4096 })
+                        body: JSON.stringify(payload)
                     });
+                    
                     typingIndicator.remove();
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -1246,8 +1385,6 @@
             
             exportSettingsBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                // Export current config only or all configs? 
-                // Implementing export for ALL settings for backup purposes.
                 const settingsToExport = { 
                     currentId: currentConfigId,
                     configs: configList
@@ -1287,26 +1424,19 @@
                 reader.onload = (event) => {
                     try {
                         const importedData = JSON.parse(event.target.result);
-                        
-                        // Handle legacy single config import
                         if (importedData.apiUrl && importedData.modelId && !importedData.configs) {
                             const newConfig = createDefaultConfig();
                             newConfig.name = '导入的配置';
                             newConfig.apiUrl = importedData.apiUrl;
                             newConfig.modelId = importedData.modelId;
                             newConfig.systemPrompt = importedData.systemPrompt || '';
-                            // Note: We don't import API Key for security/behavior consistency unless we want to
-                            // For user convenience, we import empty key or prompt user
-                            
                             configList.push(newConfig);
                             currentConfigId = newConfig.id;
                             renderConfigSelect();
                             loadConfigToUI(currentConfigId);
                             saveSettings();
                             showCustomPrompt('导入成功', '单个配置已导入！<br>请重新输入您的 API Key。');
-                        } 
-                        // Handle new full backup import
-                        else if (importedData.configs && Array.isArray(importedData.configs)) {
+                        } else if (importedData.configs && Array.isArray(importedData.configs)) {
                             configList = importedData.configs;
                             currentConfigId = importedData.currentId || configList[0]?.id;
                             renderConfigSelect();
