@@ -189,12 +189,11 @@
         .toolbar-actions {
             display: flex;
             gap: 10px;
-            /* 确保垂直居中 */
             align-items: center; 
         }
 
         .toolbar-actions button {
-            background: var(--input-bg-color);
+            background: rgba(0, 0, 0, 0);
             color: var(--text-color);
             border: 1px solid var(--glass-border-color);
             width: 36px;
@@ -973,7 +972,7 @@
         .input-controls {
             display: flex;
             gap: 15px;
-            align-items: flex-end;
+            align-items: center;
         }
 
         .input-controls textarea {
@@ -1019,7 +1018,7 @@
 
         .icon-btn:hover {
             color: var(--text-color);
-            background-color: var(--input-bg-color);
+            background-color: var(--dropdown-hover);
         }
 
         .icon-btn svg {
@@ -1033,7 +1032,7 @@
             transition: background-color 0.3s ease, transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
             border-radius: 50%; 
             width: 48px;
-            height: 48px;
+            height: 48px;;
         }
 
         #send-btn svg {
@@ -1047,13 +1046,11 @@
         }
 
         #send-btn:hover:not(:disabled) {
-            background-color: #0077ed;
-            transform: scale(1.05);
+            background-color: rgba(20, 140, 255, 0.8);
         }
 
         #send-btn:active:not(:disabled) {
-            transform: scale(0.92);
-            background-color: #0066cc;
+            background-color: var(--msg-bg-user);
         }
         
         #send-btn.stop-mode {
