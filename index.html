@@ -215,13 +215,10 @@
             width: 18px;
             height: 18px;
             color: var(--text-color);
-            /* 确保SVG在flex容器中表现良好 */
             display: block; 
         }
 
-        /* 通用 Dropdown 样式 */
         .dropdown-menu {
-            display: none;
             position: absolute;
             background-color: var(--panel-bg-color);
             -webkit-backdrop-filter: var(--glass-backdrop-filter);
@@ -234,11 +231,20 @@
             overflow: hidden;
             max-height: 400px;
             overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-5px) scale(0.95); 
+            transform-origin: top center;
+            transition: 
+                opacity 0.2s ease, 
+                transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), 
+                visibility 0.2s;
         }
 
         .dropdown-menu.show {
-            display: block;
-            animation: fadeIn 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
         }
 
         .dropdown-menu a, .dropdown-menu div.dropdown-item {
@@ -260,16 +266,14 @@
             font-weight: 500;
         }
 
-        /* 右上角菜单位置 */
         #main-menu {
-            top: 55px;
+            top: 56px;
             right: 20px;
             text-align: center;
         }
-        
-        /* 标题配置菜单位置 */
+
         #config-dropdown-menu {
-            top: 55px;
+            top: 56px;
             left: 20px;
             min-width: 220px;
         }
