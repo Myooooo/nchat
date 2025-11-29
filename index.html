@@ -24,6 +24,8 @@
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             --border-radius-large: 16px;
             --bg-gradient: linear-gradient(-45deg, #0d1b2a, #2a0d45, #1d3557, #000000);
+            --danger-color: #d93636;
+            --danger-color-hover: #e24e4e;
         }
 
         /* Light Mode Overrides */
@@ -151,6 +153,23 @@
             transition: background-color 0.3s, border-color 0.3s;
         }
 
+        .toolbar-title-wrapper {
+            max-width: 70%;
+            position: relative;
+            cursor: pointer;
+            padding: 5px 10px;
+            margin-left: -10px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .toolbar-title-wrapper:hover {
+            background-color: var(--dropdown-hover);
+        }
+
         .toolbar h1 {
             font-size: 1.1em;
             margin: 0;
@@ -158,12 +177,20 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 70%;
+        }
+        
+        .toolbar-chevron {
+            width: 12px;
+            height: 12px;
+            opacity: 0.5;
+            transition: transform 0.2s;
         }
 
         .toolbar-actions {
             display: flex;
             gap: 10px;
+            /* 确保垂直居中 */
+            align-items: center; 
         }
 
         .toolbar-actions button {
@@ -178,6 +205,7 @@
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, border-color 0.2s;
+            padding: 0;
         }
 
         .toolbar-actions button:hover {
@@ -188,13 +216,14 @@
             width: 18px;
             height: 18px;
             color: var(--text-color);
+            /* 确保SVG在flex容器中表现良好 */
+            display: block; 
         }
 
+        /* 通用 Dropdown 样式 */
         .dropdown-menu {
             display: none;
             position: absolute;
-            top: 55px;
-            right: 20px;
             background-color: var(--panel-bg-color);
             -webkit-backdrop-filter: var(--glass-backdrop-filter);
             backdrop-filter: var(--glass-backdrop-filter);
@@ -202,8 +231,10 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 100;
-            min-width: 180px;
+            min-width: 150px;
             overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .dropdown-menu.show {
@@ -211,7 +242,7 @@
             animation: fadeIn 0.2s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        .dropdown-menu a {
+        .dropdown-menu a, .dropdown-menu div.dropdown-item {
             color: var(--text-color);
             padding: 12px 18px;
             text-decoration: none;
@@ -221,13 +252,32 @@
             cursor: pointer;
         }
 
-        .dropdown-menu a:hover {
+        .dropdown-menu a:hover, .dropdown-menu div.dropdown-item:hover {
             background-color: var(--dropdown-hover);
+        }
+        
+        .dropdown-menu div.dropdown-item.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        /* 右上角菜单位置 */
+        #main-menu {
+            top: 55px;
+            right: 20px;
+            text-align: center;
+        }
+        
+        /* 标题配置菜单位置 */
+        #config-dropdown-menu {
+            top: 55px;
+            left: 20px;
+            min-width: 220px;
         }
 
         .settings-panel {
             position: absolute;
-            top: 57px;
+            top: 56px;
             left: 0;
             right: 0;
             z-index: 9;
@@ -243,7 +293,7 @@
         }
 
         .settings-panel.open {
-            max-height: calc(100% - 150px);
+            max-height: calc(100% - 160px);
             opacity: 1;
             border-bottom: 1px solid var(--glass-border-color);
         }
@@ -409,9 +459,7 @@
             opacity: 1;
         }
 
-        /* 
-         * Slider Styling
-         */
+        /* Slider Styling */
         .slider-row {
             display: flex;
             align-items: center;
@@ -440,7 +488,6 @@
             border: none;
         }
 
-        /* Track Styling */
         .slider-row input[type="range"]::-webkit-slider-runnable-track {
             width: 100%;
             height: 4px;
@@ -457,7 +504,6 @@
             border: none;
         }
 
-        /* Thumb Styling */
         .slider-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             height: 18px;
@@ -465,7 +511,6 @@
             border-radius: 50%;
             background: var(--primary-color);
             margin-top: -7px;
-            /* (trackHeight/2) - (thumbHeight/2) = 2 - 9 = -7 */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             transition: transform 0.1s ease, background-color 0.2s;
         }
@@ -480,7 +525,6 @@
             transition: transform 0.1s ease, background-color 0.2s;
         }
 
-        /* Dynamic Slider Effects */
         .slider-row input[type="range"]:hover::-webkit-slider-thumb {
             transform: scale(1.1);
             background: #0077ed;
@@ -494,8 +538,6 @@
         .slider-row input[type="range"]:focus {
             outline: none;
         }
-
-        /* End Slider Styling */
 
         .slider-row input[type="number"] {
             width: 45px;
@@ -549,7 +591,7 @@
         }
 
         .btn-destructive {
-            background-color: #d93636;
+            background-color: var(--danger-color);
             color: white;
         }
 
@@ -817,7 +859,6 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Fix footer divider in light mode */
         html[data-theme="light"] .message-footer {
             border-top: 1px solid rgba(0, 0, 0, 0.08);
         }
@@ -836,8 +877,6 @@
             transition: all 0.2s;
         }
 
-        /* In light mode, user message text is white, so footer icons should look ok, 
-           but in assistant message, text is dark. */
         html[data-theme="light"] .message.user .footer-btn {
             color: rgba(255, 255, 255, 0.7);
         }
@@ -851,9 +890,21 @@
             color: var(--text-color);
         }
 
+        /* Delete button specific hover effect */
+        .footer-btn.delete-btn:hover {
+            color: var(--danger-color) !important;
+            background: rgba(217, 54, 54, 0.15) !important;
+        }
+        
+        /* Light mode user message overrides for hover */
         html[data-theme="light"] .message.user .footer-btn:hover {
             background: rgba(255, 255, 255, 0.2);
             color: white;
+        }
+        
+        html[data-theme="light"] .message.user .footer-btn.delete-btn:hover {
+             color: #ffcccc !important; /* Lighter red for visibility on blue background */
+             background: rgba(255, 0, 0, 0.2) !important;
         }
 
         .footer-btn svg {
@@ -863,8 +914,9 @@
         }
 
         .footer-btn:disabled {
-            opacity: 0.5;
+            opacity: 0.3;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .input-area-container {
@@ -979,13 +1031,19 @@
             background-color: var(--primary-color);
             color: white;
             transition: background-color 0.3s ease, transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            border-radius: 50%; 
+            width: 48px;
+            height: 48px;
         }
 
         #send-btn svg {
-            width: 22px;
-            height: 22px;
-            margin-left: 2px;
-            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            width: 24px;
+            height: 24px;
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s;
+        }
+        
+        #send-btn .send-icon {
+            margin-left: 2px; 
         }
 
         #send-btn:hover:not(:disabled) {
@@ -997,15 +1055,20 @@
             transform: scale(0.92);
             background-color: #0066cc;
         }
-
-        #send-btn:active:not(:disabled) svg {
-            transform: translateX(1px);
+        
+        #send-btn.stop-mode {
+            background-color: var(--danger-color); 
+        }
+        
+        #send-btn.stop-mode:hover {
+             background-color: var(--danger-color-hover);
         }
 
         #send-btn:disabled {
             background-color: #555;
             cursor: not-allowed;
             transform: scale(1);
+            opacity: 0.6;
         }
 
         .message-images {
@@ -1186,6 +1249,10 @@
             .dropdown-menu {
                 right: 15px;
             }
+            
+            #config-dropdown-menu {
+                left: 15px;
+            }
 
             .settings-header,
             .settings-footer,
@@ -1226,6 +1293,11 @@
                 height: 22px;
             }
 
+            #send-btn {
+                 width: 44px;
+                 height: 44px;
+            }
+
             #send-btn svg {
                 width: 20px;
                 height: 20px;
@@ -1242,7 +1314,12 @@
 <body>
     <div class="app-container">
         <div class="toolbar">
-            <h1 id="app-title">nChat</h1>
+            <div class="toolbar-title-wrapper" id="title-wrapper">
+                <h1 id="app-title">nChat</h1>
+                <svg class="toolbar-chevron" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                </svg>
+            </div>
             <div class="toolbar-actions">
                 <button id="toggle-settings-btn" title="设置">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -1261,11 +1338,13 @@
                 </button>
             </div>
         </div>
-        <div id="dropdown-menu" class="dropdown-menu">
-            <!-- Task 1: Added Theme Toggle Option as First Item -->
+        <div id="main-menu" class="dropdown-menu">
             <a href="#" id="theme-toggle-btn">切换深色/浅色模式</a>
             <a href="#" id="export-conversation-btn">导出对话</a>
             <a href="#" id="clear-chat-btn">清除对话</a>
+        </div>
+        <div id="config-dropdown-menu" class="dropdown-menu">
+            <!-- 动态生成配置列表 -->
         </div>
         <div class="settings-panel" id="settings-panel">
             <div class="settings-header">
@@ -1297,7 +1376,7 @@
                     <label for="system-prompt">系统提示词 (System Prompt)</label>
                     <textarea id="system-prompt" rows="3" placeholder="例如: 你是一个专业的全栈工程师，请用中文回答。"></textarea>
                 </div>
-                <div class="input-group"><label for="api-url">API URL</label><input type="text" id="api-url"></div>
+                <div class="input-group"><label for="api-url">API URL (Base URL)</label><input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1"></div>
                 <div class="input-group"><label for="api-key">API Key</label><input type="password" id="api-key"></div>
                 <div class="input-group"><label for="model-id">Model ID</label><input type="text" id="model-id"
                         placeholder="例如: gpt-4-vision-preview"></div>
@@ -1342,8 +1421,13 @@
                 </button>
                 <textarea id="user-input" placeholder="输入消息..." rows="1"></textarea>
                 <button id="send-btn" class="icon-btn" title="发送">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
+                    <!-- 默认发送图标 -->
+                    <svg class="send-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                    </svg>
+                    <!-- 停止图标 (隐藏) -->
+                    <svg class="stop-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none; width: 18px; height: 18px;">
+                        <path d="M6 6h12v12H6z"></path>
                     </svg>
                 </button>
             </div>
@@ -1377,6 +1461,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const getEl = id => document.getElementById(id);
             const appTitle = getEl('app-title');
+            const titleWrapper = getEl('title-wrapper');
             const settingsPanel = getEl('settings-panel'), toggleSettingsBtn = getEl('toggle-settings-btn');
             // Settings Inputs
             const configSelect = getEl('config-select');
@@ -1395,7 +1480,8 @@
             const uploadBtn = getEl('upload-btn'), imageInput = getEl('image-input'), imagePreviewContainer = getEl('image-preview-container');
             const imageLightbox = getEl('image-lightbox'), lightboxImg = getEl('lightbox-img'), lightboxClose = getEl('lightbox-close');
             const menuBtn = getEl('menu-btn');
-            const dropdownMenu = getEl('dropdown-menu');
+            const dropdownMenu = getEl('main-menu');
+            const configDropdownMenu = getEl('config-dropdown-menu');
             const exportSettingsBtn = getEl('export-settings-btn');
             const exportConversationBtn = getEl('export-conversation-btn');
             const importSettingsBtn = getEl('import-settings-btn');
@@ -1410,7 +1496,7 @@
             const editModalSave = getEl('edit-modal-save');
             const editModalCancel = getEl('edit-modal-cancel');
             const inputAreaContainer = getEl('input-area-container');
-            const themeToggleBtn = getEl('theme-toggle-btn'); // Task 1 Variable
+            const themeToggleBtn = getEl('theme-toggle-btn');
 
             let conversationHistory = [];
             let configList = [];
@@ -1419,6 +1505,7 @@
             let stagedImages = [];
             let isAssistantResponding = false;
             let currentEditingMessageId = null;
+            let abortController = null; // For aborting requests
             const MAX_IMAGES = 5;
             const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -1429,7 +1516,6 @@
                     document.documentElement.setAttribute('data-theme', storedTheme);
                     updateThemeBtnText(storedTheme);
                 } else {
-                    // Decide based on browser system preference
                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                     const defaultTheme = prefersDark ? 'dark' : 'light';
                     document.documentElement.setAttribute('data-theme', defaultTheme);
@@ -1440,7 +1526,6 @@
             const toggleTheme = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
                 const currentTheme = document.documentElement.getAttribute('data-theme');
                 const newTheme = currentTheme === 'light' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', newTheme);
@@ -1450,12 +1535,11 @@
             };
 
             const updateThemeBtnText = (theme) => {
-                // If current is light, offer switch to dark, and vice versa
                 themeToggleBtn.textContent = theme === 'light' ? '深色模式' : '浅色模式';
             };
 
             themeToggleBtn.addEventListener('click', toggleTheme);
-            initTheme(); // Run on load
+            initTheme();
 
             // --- Helper Functions ---
             const syncInputs = (range, number) => {
@@ -1464,18 +1548,17 @@
             };
             syncInputs(tempSlider, tempInput);
             syncInputs(toppSlider, toppInput);
-            // Toggle Advanced Section
+
             advancedToggleBtn.addEventListener('click', () => {
                 const isExpanded = advancedSettingsContainer.classList.toggle('show');
                 advancedToggleBtn.classList.toggle('expanded', isExpanded);
-                // Update current settings immediately for "Immediate Effect" logic
                 currentSettings.enableAdvanced = isExpanded;
-                // If opening, ensure values are synced from UI state
                 if (isExpanded) {
                     currentSettings.temperature = parseFloat(tempInput.value);
                     currentSettings.top_p = parseFloat(toppInput.value);
                 }
             });
+
             const copyTextToClipboard = (text) => {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -1491,19 +1574,12 @@
                         textArea.select();
                         try {
                             const successful = document.execCommand('copy');
-                            if (successful) {
-                                resolve();
-                            } else {
-                                reject(new Error('Fallback: Unable to copy'));
-                            }
-                        } catch (err) {
-                            reject(err);
-                        } finally {
-                            document.body.removeChild(textArea);
-                        }
+                            if (successful) resolve(); else reject(new Error('Fallback: Unable to copy'));
+                        } catch (err) { reject(err); } finally { document.body.removeChild(textArea); }
                     });
                 }
             };
+
             const adjustChatPadding = () => {
                 const inputAreaHeight = inputAreaContainer.offsetHeight;
                 chatContainer.style.paddingBottom = `${inputAreaHeight + 10}px`;
@@ -1511,10 +1587,9 @@
             try {
                 const resizeObserver = new ResizeObserver(adjustChatPadding);
                 resizeObserver.observe(inputAreaContainer);
-            } catch (error) {
-                console.warn("ResizeObserver not supported.");
-            }
+            } catch (error) { console.warn("ResizeObserver not supported."); }
             adjustChatPadding();
+
             const showCustomPrompt = (title, message, options = {}) => {
                 return new Promise(resolve => {
                     customPromptTitle.textContent = title;
@@ -1530,29 +1605,25 @@
                         customPromptOverlay.classList.remove('show');
                         resolve(value);
                     };
-                    const confirmHandler = () => closePrompt(true);
-                    const cancelHandler = () => closePrompt(false);
-                    const overlayHandler = (e) => {
-                        if (e.target === customPromptOverlay) closePrompt(false);
-                    };
-                    customPromptConfirm.onclick = confirmHandler;
-                    customPromptCancel.onclick = cancelHandler;
-                    customPromptOverlay.onclick = overlayHandler;
+                    customPromptConfirm.onclick = () => closePrompt(true);
+                    customPromptCancel.onclick = () => closePrompt(false);
+                    customPromptOverlay.onclick = (e) => { if (e.target === customPromptOverlay) closePrompt(false); };
                 });
             };
+
             // --- Config Management ---
             const createDefaultConfig = () => ({
                 id: generateId(),
                 name: '默认配置',
-                apiUrl: 'https://api.openai.com/v1/chat/completions',
+                apiUrl: 'https://api.openai.com/v1',
                 apiKey: '',
                 modelId: 'gpt-4o',
                 systemPrompt: '',
-                // Advanced params defaults
                 enableAdvanced: false,
                 temperature: 1.0,
                 top_p: 0.95
             });
+
             const renderConfigSelect = () => {
                 configSelect.innerHTML = '';
                 configList.forEach(config => {
@@ -1561,31 +1632,31 @@
                     option.textContent = config.name || '(未命名配置)';
                     configSelect.appendChild(option);
                 });
-                if (currentConfigId) {
-                    configSelect.value = currentConfigId;
-                }
+                if (currentConfigId) configSelect.value = currentConfigId;
             };
+
+            const updateTitle = (name) => {
+                appTitle.textContent = `nChat | ${name || '未命名配置'}`;
+            };
+
             const loadConfigToUI = (id) => {
                 const config = configList.find(c => c.id === id);
                 if (!config) return;
                 currentConfigId = id;
-                currentSettings = { ...config }; // Update global current settings
-                // Update Title
-                appTitle.textContent = `nChat | ${config.name || '未命名配置'}`;
-                // Inputs
+                currentSettings = { ...config };
+                updateTitle(config.name);
+                
                 configNameInput.value = config.name || '';
                 apiUrlInput.value = config.apiUrl || '';
                 apiKeyInput.value = config.apiKey || '';
                 modelIdInput.value = config.modelId || '';
                 systemPromptInput.value = config.systemPrompt || '';
-                // Advanced Inputs
                 tempInput.value = config.temperature ?? 1.0;
                 tempSlider.value = config.temperature ?? 1.0;
                 toppInput.value = config.top_p ?? 0.95;
                 toppSlider.value = config.top_p ?? 0.95;
-                // Toggle State
-                const shouldShow = config.enableAdvanced || false;
-                if (shouldShow) {
+
+                if (config.enableAdvanced) {
                     advancedSettingsContainer.classList.add('show');
                     advancedToggleBtn.classList.add('expanded');
                 } else {
@@ -1593,18 +1664,17 @@
                     advancedToggleBtn.classList.remove('expanded');
                 }
             };
+
             const loadSettings = () => {
                 const savedSettings = localStorage.getItem('nchat-settings');
                 let loadedData = null;
-                try {
-                    if (savedSettings) loadedData = JSON.parse(savedSettings);
-                } catch (e) { console.error('Settings parse error', e); }
+                try { if (savedSettings) loadedData = JSON.parse(savedSettings); } catch (e) { console.error('Settings parse error', e); }
+                
                 if (!loadedData) {
                     const def = createDefaultConfig();
                     configList = [def];
                     currentConfigId = def.id;
                 } else if (!loadedData.configs) {
-                    // Migration
                     const newConfig = createDefaultConfig();
                     newConfig.name = '旧配置备份';
                     newConfig.apiUrl = loadedData.apiUrl || newConfig.apiUrl;
@@ -1625,6 +1695,7 @@
                 renderConfigSelect();
                 loadConfigToUI(currentConfigId);
             };
+
             const saveSettings = () => {
                 const updatedConfig = {
                     id: currentConfigId,
@@ -1633,28 +1704,26 @@
                     apiKey: apiKeyInput.value.trim(),
                     modelId: modelIdInput.value.trim(),
                     systemPrompt: systemPromptInput.value.trim(),
-                    // Save advanced params regardless of visibility to remember them
                     enableAdvanced: advancedSettingsContainer.classList.contains('show'),
                     temperature: parseFloat(tempInput.value),
                     top_p: parseFloat(toppInput.value)
                 };
                 const idx = configList.findIndex(c => c.id === currentConfigId);
-                if (idx !== -1) {
-                    configList[idx] = updatedConfig;
-                } else {
-                    configList.push(updatedConfig);
-                }
+                if (idx !== -1) configList[idx] = updatedConfig; else configList.push(updatedConfig);
+                
                 currentSettings = updatedConfig;
                 renderConfigSelect();
-                appTitle.textContent = `nChat | ${updatedConfig.name}`;
-                const dataToSave = {
+                updateTitle(updatedConfig.name);
+                
+                localStorage.setItem('nchat-settings', JSON.stringify({
                     currentId: currentConfigId,
                     configs: configList
-                };
-                localStorage.setItem('nchat-settings', JSON.stringify(dataToSave));
+                }));
+                
                 saveStatus.style.opacity = '1';
                 setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
             };
+
             const handleAddConfig = () => {
                 const newConfig = createDefaultConfig();
                 newConfig.name = '新配置 ' + (configList.length + 1);
@@ -1663,6 +1732,7 @@
                 configSelect.value = newConfig.id;
                 loadConfigToUI(newConfig.id);
             };
+
             const handleDeleteConfig = async () => {
                 if (configList.length <= 1) {
                     showCustomPrompt('无法删除', '至少保留一个配置。');
@@ -1677,43 +1747,71 @@
                     saveSettings();
                 }
             };
+
             configSelect.addEventListener('change', (e) => {
                 loadConfigToUI(e.target.value);
-                saveSettings(); // Auto-save selection
+                saveSettings();
             });
             addConfigBtn.addEventListener('click', handleAddConfig);
             delConfigBtn.addEventListener('click', handleDeleteConfig);
+
+            // --- Title Click Quick Switch ---
+            const populateConfigDropdown = () => {
+                configDropdownMenu.innerHTML = '';
+                configList.forEach(config => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    if (config.id === currentConfigId) item.classList.add('active');
+                    item.textContent = config.name || '(未命名配置)';
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        configSelect.value = config.id;
+                        loadConfigToUI(config.id);
+                        saveSettings();
+                        configDropdownMenu.classList.remove('show');
+                    };
+                    configDropdownMenu.appendChild(item);
+                });
+            };
+
+            titleWrapper.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (configDropdownMenu.classList.contains('show')) {
+                    configDropdownMenu.classList.remove('show');
+                } else {
+                    dropdownMenu.classList.remove('show');
+                    populateConfigDropdown();
+                    configDropdownMenu.classList.add('show');
+                }
+            });
+
             // --- Chat Logic ---
             const clearConversation = async () => {
                 if (isAssistantResponding) return;
-                const confirmed = await showCustomPrompt(
-                    '清除对话',
-                    '确定要清除所有对话记录吗？<br>此操作不可撤销。',
-                    { isConfirm: true, confirmText: '清除', isDestructive: true }
-                );
+                const confirmed = await showCustomPrompt('清除对话', '确定要清除所有对话记录吗？', { isConfirm: true, confirmText: '清除', isDestructive: true });
                 if (confirmed) {
                     conversationHistory = []; chatContainer.innerHTML = '';
                     addMessage({ role: 'assistant', content: '新对话已开始。' });
                 }
             };
+
             const autoAdjustTextareaHeight = (el) => {
                 el.style.height = 'auto';
                 el.style.height = (el.scrollHeight) + 'px';
             };
+
             const handleDeleteMessage = id => {
                 conversationHistory = conversationHistory.filter(msg => msg.id !== id);
                 document.querySelector(`[data-id='${id}']`)?.remove();
             };
+
             const renderMessageContent = (content) => {
                 marked.setOptions({ breaks: true, gfm: true });
-                const rawHtml = marked.parse(content);
-                return DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] });
+                return DOMPurify.sanitize(marked.parse(content), { ADD_ATTR: ['target'] });
             };
+
             const enterEditMode = (messageElement, id) => {
-                if (isAssistantResponding) {
-                    showCustomPrompt('提示', '请等待当前回复完成后再进行编辑。');
-                    return;
-                }
+                if (isAssistantResponding) return;
                 const message = conversationHistory.find(m => m.id === id);
                 if (!message) return;
                 currentEditingMessageId = id;
@@ -1729,39 +1827,55 @@
                 editModalTextarea.focus();
                 autoAdjustTextareaHeight(editModalTextarea);
             };
+
             const saveEdit = (id, newContent) => {
                 const editIndex = conversationHistory.findIndex(msg => msg.id === id);
                 if (editIndex === -1) return;
                 const messageToUpdate = conversationHistory[editIndex];
-                let updatedHtmlContent = '';
+                
+                // Truncate history after this message for consistency
+                const messagesToRemove = conversationHistory.slice(editIndex + 1);
+                messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
+                conversationHistory.splice(editIndex + 1);
+
                 if (messageToUpdate.role === 'user') {
-                    const messagesToRemove = conversationHistory.slice(editIndex + 1);
-                    messagesToRemove.forEach(msg => {
-                        document.querySelector(`[data-id='${msg.id}']`)?.remove();
-                    });
-                    conversationHistory.splice(editIndex + 1);
                     const textPart = messageToUpdate.content.find(p => p.type === 'text');
-                    if (textPart) {
-                        textPart.text = newContent;
-                    } else if (newContent) {
-                        messageToUpdate.content.unshift({ type: 'text', text: newContent });
-                    }
-                    updatedHtmlContent = `<p>${newContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                    if (textPart) textPart.text = newContent; else messageToUpdate.content.unshift({ type: 'text', text: newContent });
+                    
+                    let html = `<p>${newContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
                     const images = messageToUpdate.content.filter(p => p.type === 'image_url');
-                    if (images.length > 0) {
-                        updatedHtmlContent += `<div class="message-images">${images.map(img => ` <img src="${img.image_url.url}" alt="Image in message"`).join('')}</div>`;
-                    }
+                    if (images.length > 0) html += `<div class="message-images">${images.map(img => ` <img src="${img.image_url.url}">`).join('')}</div>`;
+                    
+                    document.querySelector(`[data-id='${id}'] .message-content`).innerHTML = html;
+                    fetchAssistantResponse();
                 } else {
-                    messageToUpdate.content = newContent;
-                    updatedHtmlContent = renderMessageContent(newContent);
+                     // Should generally not happen as we regenerate assistant, but support direct edit
+                     messageToUpdate.content = newContent;
+                     document.querySelector(`[data-id='${id}'] .message-content`).innerHTML = renderMessageContent(newContent);
                 }
-                const messageElement = document.querySelector(`[data-id='${id}']`);
-                const contentDiv = messageElement.querySelector('.message-content');
-                contentDiv.innerHTML = updatedHtmlContent;
-                if (messageToUpdate.role === 'user') {
+            };
+            
+            const handleRegenerate = async (id) => {
+                if (isAssistantResponding) return;
+                const msgIndex = conversationHistory.findIndex(msg => msg.id === id);
+                if (msgIndex === -1) return;
+                const targetMsg = conversationHistory[msgIndex];
+
+                if (targetMsg.role === 'user') {
+                    // Remove subsequent messages and re-fetch for this user message
+                    const messagesToRemove = conversationHistory.slice(msgIndex + 1);
+                    messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
+                    conversationHistory.splice(msgIndex + 1);
+                    fetchAssistantResponse();
+                } else if (targetMsg.role === 'assistant') {
+                    // Remove this assistant message and any subsequent, then re-fetch
+                    const messagesToRemove = conversationHistory.slice(msgIndex);
+                    messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
+                    conversationHistory.splice(msgIndex);
                     fetchAssistantResponse();
                 }
             };
+
             const addMessage = (message) => {
                 const { id, role, content, isHtml } = message;
                 const messageElement = document.createElement('div');
@@ -1771,55 +1885,67 @@
                 contentDiv.className = 'message-content';
                 contentDiv.innerHTML = isHtml ? content : renderMessageContent(content);
                 messageElement.appendChild(contentDiv);
+                
                 if (id && (role === 'user' || role === 'assistant')) {
                     const footer = document.createElement('div');
                     footer.className = 'message-footer';
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'footer-btn';
-                    deleteBtn.title = '删除';
-                    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>`;
-                    deleteBtn.onclick = async () => {
-                        const confirmed = await showCustomPrompt('删除消息', '确定要删除这条消息吗？<br>此操作不可撤销。', { isConfirm: true, confirmText: '删除', isDestructive: true });
-                        if (confirmed) handleDeleteMessage(id);
+                    
+                    // Copy Button
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'footer-btn';
+                    copyBtn.title = '复制';
+                    const copyIconDefault = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>`;
+                    copyBtn.innerHTML = copyIconDefault;
+                    copyBtn.onclick = () => {
+                        const c = messageElement.querySelector('.message-content').cloneNode(true);
+                        c.querySelector('details')?.remove();
+                        copyTextToClipboard(c.innerText.trim()).then(() => {
+                            copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>`;
+                            setTimeout(() => { copyBtn.innerHTML = copyIconDefault; }, 2000);
+                        });
                     };
+
+                    // Regenerate Button
+                    const regenBtn = document.createElement('button');
+                    regenBtn.className = 'footer-btn';
+                    regenBtn.title = '重新生成';
+                    regenBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>`;
+                    regenBtn.onclick = () => handleRegenerate(id);
+
+                    // Edit Button
                     const editBtn = document.createElement('button');
                     editBtn.className = 'footer-btn';
                     editBtn.title = '编辑';
                     editBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>`;
                     editBtn.onclick = () => enterEditMode(messageElement, id);
-                    const copyBtn = document.createElement('button');
-                    copyBtn.className = 'footer-btn';
-                    copyBtn.title = '复制';
-                    const copyIconDefault = `<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>`;
-                    const copyIconSuccess = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>`;
-                    copyBtn.innerHTML = copyIconDefault;
-                    copyBtn.onclick = () => {
-                        const contentElement = messageElement.querySelector('.message-content');
-                        if (!contentElement) return;
-                        const contentClone = contentElement.cloneNode(true);
-                        const reasoningDetails = contentClone.querySelector('details');
-                        if (reasoningDetails) reasoningDetails.remove();
-                        const textToCopy = contentClone.innerText || contentClone.textContent;
-                        if (textToCopy && textToCopy.trim()) {
-                            copyTextToClipboard(textToCopy.trim()).then(() => {
-                                copyBtn.innerHTML = copyIconSuccess;
-                                setTimeout(() => { copyBtn.innerHTML = copyIconDefault; }, 2000);
-                            }).catch(err => {
-                                showCustomPrompt('复制失败', `无法将内容复制到剪贴板。<br><small>${err.message}</small>`);
-                            });
-                        } else {
-                            showCustomPrompt('内容为空', '此消息没有可复制的文本。');
-                        }
+
+                    // Delete Button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'footer-btn delete-btn';
+                    deleteBtn.title = '删除';
+                    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>`;
+                    deleteBtn.onclick = async () => {
+                        const confirmed = await showCustomPrompt('删除消息', '确定删除？', { isConfirm: true, confirmText: '删除', isDestructive: true });
+                        if (confirmed) handleDeleteMessage(id);
                     };
-                    footer.appendChild(deleteBtn);
-                    footer.appendChild(editBtn);
+                    
                     footer.appendChild(copyBtn);
+                    footer.appendChild(regenBtn);
+                    footer.appendChild(editBtn);
+                    footer.appendChild(deleteBtn);
                     messageElement.appendChild(footer);
                 }
                 chatContainer.appendChild(messageElement);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // If adding message while loading, disable buttons immediately
+                if(isAssistantResponding) {
+                     messageElement.querySelectorAll('.footer-btn').forEach(btn => btn.disabled = true);
+                }
+                
                 return messageElement;
             };
+
             const renderPreviews = () => {
                 imagePreviewContainer.innerHTML = '';
                 stagedImages.forEach(image => {
@@ -1829,6 +1955,7 @@
                     imagePreviewContainer.appendChild(item);
                 });
             };
+
             imagePreviewContainer.addEventListener('click', e => {
                 if (e.target.classList.contains('remove-image-btn')) {
                     stagedImages = stagedImages.filter(img => img.id != e.target.dataset.id);
@@ -1839,71 +1966,103 @@
             imageInput.addEventListener('change', e => {
                 const files = Array.from(e.target.files);
                 if (stagedImages.length + files.length > MAX_IMAGES) {
-                    showCustomPrompt('图片数量超限', `最多只能选择 ${MAX_IMAGES} 张图片。`);
+                    showCustomPrompt('超限', `最多 ${MAX_IMAGES} 张图片。`);
                     files.splice(MAX_IMAGES - stagedImages.length);
                 }
                 files.forEach(file => {
                     if (!file.type.startsWith('image/')) return;
                     const reader = new FileReader();
-                    reader.onload = (event) => {
-                        stagedImages.push({ id: Date.now() + Math.random(), dataUrl: event.target.result });
-                        renderPreviews();
-                    };
+                    reader.onload = (event) => stagedImages.push({ id: Date.now() + Math.random(), dataUrl: event.target.result }) && renderPreviews();
                     reader.readAsDataURL(file);
                 });
                 imageInput.value = '';
             });
+            
+            const setInteractionState = (isProcessing) => {
+                isAssistantResponding = isProcessing;
+                // Buttons
+                userInput.disabled = isProcessing;
+                uploadBtn.disabled = isProcessing;
+                // Chat history buttons
+                document.querySelectorAll('.footer-btn').forEach(btn => btn.disabled = isProcessing);
+                
+                const sendIcon = sendBtn.querySelector('.send-icon');
+                const stopIcon = sendBtn.querySelector('.stop-icon');
+                
+                if (isProcessing) {
+                    sendBtn.classList.add('stop-mode');
+                    sendBtn.title = "停止生成";
+                    sendIcon.style.display = 'none';
+                    stopIcon.style.display = 'block';
+                } else {
+                    sendBtn.classList.remove('stop-mode');
+                    sendBtn.title = "发送";
+                    sendIcon.style.display = 'block';
+                    stopIcon.style.display = 'none';
+                }
+            };
+
             const fetchAssistantResponse = async () => {
-                if (conversationHistory.length === 0 || isAssistantResponding) return;
-                isAssistantResponding = true;
-                sendBtn.disabled = true;
-                userInput.disabled = true;
-                document.querySelectorAll('.footer-btn, .delete-btn').forEach(btn => btn.disabled = true);
+                if (conversationHistory.length === 0) return;
+                
+                setInteractionState(true);
+                abortController = new AbortController();
+                
                 const typingIndicator = document.createElement('div');
                 typingIndicator.className = 'typing-indicator';
                 typingIndicator.innerHTML = '<span></span><span></span><span></span>';
                 chatContainer.appendChild(typingIndicator);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-                let assistantMessage = null, assistantMessageElement = null;
-                let finalContentElement = null;
+                
+                let assistantMessage = null, assistantMessageElement = null, finalContentElement = null;
                 let reasoningText = '', reasoningContainer = null, reasoningSummaryElement = null;
-                let thinkingStartTime = null;
-                let reasoningFinished = false;
+                let thinkingStartTime = null, reasoningFinished = false;
+
                 try {
                     const historyToSend = conversationHistory.map(({ id, ...rest }) => rest);
-                    if (currentSettings.systemPrompt) {
-                        historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
-                    }
+                    if (currentSettings.systemPrompt) historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
+                    
                     const payload = {
                         model: currentSettings.modelId,
                         messages: historyToSend,
                         stream: true,
                         max_tokens: 4096
                     };
-                    // Advanced Parameters Logic
                     if (currentSettings.enableAdvanced) {
                         payload.temperature = parseFloat(currentSettings.temperature);
                         payload.top_p = parseFloat(currentSettings.top_p);
                     }
-                    const response = await fetch(currentSettings.apiUrl, {
+                    
+                    // URL Processing logic
+                    let fetchUrl = currentSettings.apiUrl.trim();
+                    // Remove trailing slash
+                    if (fetchUrl.endsWith('/')) fetchUrl = fetchUrl.slice(0, -1);
+                    // Automatically append /chat/completions if not present
+                    if (!fetchUrl.endsWith('/chat/completions')) {
+                        fetchUrl += '/chat/completions';
+                    }
+
+                    const response = await fetch(fetchUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        signal: abortController.signal
                     });
+                    
                     typingIndicator.remove();
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || `${response.status}: ${response.statusText}`);
-                    }
+                    if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder('utf-8');
                     let buffer = '';
+
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\n');
                         buffer = lines.pop();
+
                         for (const line of lines) {
                             if (!line.startsWith('data: ')) continue;
                             const data = line.substring(6);
@@ -1911,10 +2070,12 @@
                             try {
                                 const json = JSON.parse(data);
                                 const delta = json.choices[0]?.delta || {};
+                                
                                 if (!assistantMessageElement && (delta.reasoning_content || delta.content)) {
                                     assistantMessage = { id: Date.now(), role: 'assistant', content: '' };
                                     assistantMessageElement = addMessage(assistantMessage);
                                 }
+                                
                                 if (delta.reasoning_content) {
                                     if (!reasoningContainer) {
                                         thinkingStartTime = performance.now();
@@ -1923,17 +2084,17 @@
                                         assistantMessageElement.querySelector('.message-content').prepend(details);
                                         reasoningSummaryElement = details.querySelector('summary');
                                         reasoningContainer = details.querySelector('.reasoning-content');
+                                        details.open = true; // Auto open reasoning
                                     }
                                     reasoningText += delta.reasoning_content;
                                     reasoningContainer.innerHTML = renderMessageContent(reasoningText);
                                 }
+                                
                                 if (delta.content) {
                                     if (thinkingStartTime && !reasoningFinished) {
-                                        const duration = ((performance.now() - thinkingStartTime) / 1000).toFixed(1);
-                                        if (reasoningSummaryElement) {
-                                            reasoningSummaryElement.textContent = `已思考 (用时 ${duration}秒)`;
-                                        }
+                                        reasoningSummaryElement.textContent = `已思考 (用时 ${((performance.now() - thinkingStartTime)/1000).toFixed(1)}秒)`;
                                         reasoningFinished = true;
+                                        assistantMessageElement.querySelector('details').open = false; 
                                     }
                                     if (!finalContentElement) {
                                         finalContentElement = document.createElement('div');
@@ -1943,157 +2104,123 @@
                                     finalContentElement.innerHTML = renderMessageContent(assistantMessage.content);
                                 }
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
-                            } catch (error) { console.error('Stream parsing error:', error, 'on line:', line); }
+                            } catch (e) { }
                         }
                     }
                 } catch (error) {
                     if (typingIndicator.parentNode) typingIndicator.remove();
-                    addMessage({ role: 'error', content: `请求失败: ${error.message}` });
-                } finally {
-                    if (assistantMessage) {
-                        conversationHistory.push({ id: assistantMessage.id, role: 'assistant', content: assistantMessage.content });
+                    if (error.name === 'AbortError') {
+                         if (!assistantMessage) addMessage({ role: 'assistant', content: '_[已中断生成]_' });
+                    } else {
+                        addMessage({ role: 'error', content: `请求失败: ${error.message}` });
                     }
-                    isAssistantResponding = false;
-                    sendBtn.disabled = false;
-                    userInput.disabled = false;
-                    document.querySelectorAll('.footer-btn, .delete-btn').forEach(btn => btn.disabled = false);
+                } finally {
+                    if (assistantMessage) conversationHistory.push({ id: assistantMessage.id, role: 'assistant', content: assistantMessage.content });
+                    setInteractionState(false);
+                    abortController = null;
                     userInput.focus();
                 }
             };
-            const handleSendMessage = async () => {
-                if (isAssistantResponding) return;
+
+            const handleSendOrStop = () => {
+                if (isAssistantResponding) {
+                    // Stop Logic
+                    if (abortController) abortController.abort();
+                    return;
+                }
+                
+                // Send Logic
                 const userText = userInput.value.trim();
                 if (!userText && stagedImages.length === 0) return;
                 if (!currentSettings.apiKey || !currentSettings.apiUrl || !currentSettings.modelId) {
                     addMessage({ role: 'error', content: '请先完成并保存 API 配置。' }); return;
                 }
+                
                 const userMessageContent = [{ type: 'text', text: userText }];
-                stagedImages.forEach(img => {
-                    userMessageContent.push({ type: 'image_url', image_url: { url: img.dataUrl } });
-                });
+                stagedImages.forEach(img => userMessageContent.push({ type: 'image_url', image_url: { url: img.dataUrl } }));
+                
                 let messageHtml = userText ? `<p>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
-                if (stagedImages.length > 0) {
-                    messageHtml += `<div class="message-images">${stagedImages.map(img => ` <img src="${img.dataUrl}" alt="Image in message"`).join('')}</div>`;
-                }
+                if (stagedImages.length > 0) messageHtml += `<div class="message-images">${stagedImages.map(img => ` <img src="${img.dataUrl}">`).join('')}</div>`;
+                
                 const messageId = Date.now();
                 addMessage({ id: messageId, role: 'user', content: messageHtml, isHtml: true });
                 conversationHistory.push({ id: messageId, role: 'user', content: userMessageContent });
+                
                 userInput.value = ''; autoAdjustTextareaHeight(userInput);
                 stagedImages = []; renderPreviews();
                 fetchAssistantResponse();
             };
+
+            // Global Click to Close Menus
             document.addEventListener('click', (e) => {
                 if (e.target.tagName === 'IMG' && (e.target.closest('.message-images') || e.target.closest('#image-preview-container'))) {
                     if (e.target.closest('.remove-image-btn')) return;
-                    e.preventDefault();
-                    imageLightbox.style.display = 'flex';
-                    lightboxImg.src = e.target.src;
+                    e.preventDefault(); imageLightbox.style.display = 'flex'; lightboxImg.src = e.target.src;
                 }
+                if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) dropdownMenu.classList.remove('show');
+                if (!titleWrapper.contains(e.target) && !configDropdownMenu.contains(e.target)) configDropdownMenu.classList.remove('show');
             });
-            const closeLightbox = () => { imageLightbox.style.display = 'none'; };
-            lightboxClose.addEventListener('click', closeLightbox);
-            imageLightbox.addEventListener('click', (e) => { if (e.target === imageLightbox) closeLightbox(); });
-            const downloadBlob = (blob, filename) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click();
-                document.body.removeChild(a); URL.revokeObjectURL(url);
-            };
-            menuBtn.addEventListener('click', (e) => { e.stopPropagation(); dropdownMenu.classList.toggle('show'); });
-            window.addEventListener('click', () => { if (dropdownMenu.classList.contains('show')) dropdownMenu.classList.remove('show'); });
-            exportSettingsBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const settingsToExport = {
-                    currentId: currentConfigId,
-                    configs: configList
-                };
-                downloadBlob(new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' }), 'nchat-settings.json');
-            });
-            exportConversationBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                let markdownContent = `# nChat Conversation\n\n**Exported on:** ${new Date().toLocaleString()}\n\n---\n\n`;
+            
+            lightboxClose.addEventListener('click', () => imageLightbox.style.display = 'none');
+            imageLightbox.addEventListener('click', (e) => { if(e.target === imageLightbox) imageLightbox.style.display = 'none'; });
+            
+            const downloadBlob = (blob, filename) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href); };
+            
+            menuBtn.addEventListener('click', (e) => { e.stopPropagation(); dropdownMenu.classList.toggle('show'); configDropdownMenu.classList.remove('show'); });
+            
+            exportSettingsBtn.addEventListener('click', () => downloadBlob(new Blob([JSON.stringify({ currentId: currentConfigId, configs: configList }, null, 2)], { type: 'application/json' }), 'nchat-settings.json'));
+            
+            exportConversationBtn.addEventListener('click', () => {
+                let md = `# nChat Conversation\n\n**Time:** ${new Date().toLocaleString()}\n\n---\n\n`;
                 conversationHistory.forEach(msg => {
-                    if (msg.role === 'user') {
-                        markdownContent += `## 👤 User\n\n`;
-                        if (Array.isArray(msg.content)) {
-                            const textPart = msg.content.find(item => item.type === 'text');
-                            if (textPart && textPart.text) markdownContent += `${textPart.text}\n\n`;
-                            const imageCount = msg.content.filter(item => item.type === 'image_url').length;
-                            if (imageCount > 0) markdownContent += `*🖼️ [Sent ${imageCount} image(s)]*\n\n`;
-                        } else {
-                            markdownContent += `${msg.content}\n\n`;
-                        }
-                    } else if (msg.role === 'assistant') {
-                        markdownContent += `## 🤖 Assistant\n\n${msg.content}\n\n`;
-                    }
-                    markdownContent += '---\n\n';
+                    const role = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
+                    let content = '';
+                    if (Array.isArray(msg.content)) {
+                        const txt = msg.content.find(i => i.type === 'text')?.text || '';
+                        const imgCount = msg.content.filter(i => i.type === 'image_url').length;
+                        content = txt + (imgCount ? `\n\n*[Sent ${imgCount} images]*` : '');
+                    } else content = msg.content;
+                    md += `## ${role}\n\n${content}\n\n---\n\n`;
                 });
-                downloadBlob(new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' }), 'nchat-conversation.md');
+                downloadBlob(new Blob([md], { type: 'text/markdown' }), 'conversation.md');
                 dropdownMenu.classList.remove('show');
             });
-            importSettingsBtn.addEventListener('click', () => { importSettingsInput.click(); });
+            
+            importSettingsBtn.addEventListener('click', () => importSettingsInput.click());
             importSettingsInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => {
+                reader.onload = (ev) => {
                     try {
-                        const importedData = JSON.parse(event.target.result);
-                        if (importedData.apiUrl && importedData.modelId && !importedData.configs) {
-                            const newConfig = createDefaultConfig();
-                            newConfig.name = '导入的配置';
-                            newConfig.apiUrl = importedData.apiUrl;
-                            newConfig.modelId = importedData.modelId;
-                            newConfig.systemPrompt = importedData.systemPrompt || '';
-                            configList.push(newConfig);
-                            currentConfigId = newConfig.id;
-                            renderConfigSelect();
-                            loadConfigToUI(currentConfigId);
-                            saveSettings();
-                            showCustomPrompt('导入成功', '单个配置已导入！<br>请重新输入您的 API Key。');
-                        } else if (importedData.configs && Array.isArray(importedData.configs)) {
-                            configList = importedData.configs;
-                            currentConfigId = importedData.currentId || configList[0]?.id;
-                            renderConfigSelect();
-                            loadConfigToUI(currentConfigId);
-                            saveSettings();
-                            showCustomPrompt('导入成功', `已恢复 ${configList.length} 个配置。`);
-                        } else {
-                            throw new Error('无效的设置文件格式。');
+                        const data = JSON.parse(ev.target.result);
+                        if (data.configs) {
+                            configList = data.configs; currentConfigId = data.currentId || configList[0]?.id;
+                        } else if (data.apiUrl) {
+                             // Legacy/Single import
+                             const c = createDefaultConfig(); Object.assign(c, data, {name: '导入配置'}); 
+                             configList.push(c); currentConfigId = c.id;
                         }
-                    } catch (error) { showCustomPrompt('导入失败', error.message); }
-                    finally { e.target.value = ''; }
+                        renderConfigSelect(); loadConfigToUI(currentConfigId); saveSettings();
+                        showCustomPrompt('成功', '配置已导入');
+                    } catch (err) { showCustomPrompt('错误', '格式无效'); }
+                    e.target.value = '';
                 };
-                reader.onerror = () => { showCustomPrompt('读取错误', '读取文件时出错。'); e.target.value = ''; };
                 reader.readAsText(file);
             });
-            const closeEditModal = () => {
-                editModalOverlay.classList.remove('show');
-                currentEditingMessageId = null;
-                editModalTextarea.value = '';
-            };
-            editModalSave.addEventListener('click', () => {
-                if (currentEditingMessageId) {
-                    saveEdit(currentEditingMessageId, editModalTextarea.value);
-                    closeEditModal();
-                }
-            });
+            
+            const closeEditModal = () => { editModalOverlay.classList.remove('show'); currentEditingMessageId = null; };
+            editModalSave.addEventListener('click', () => { if (currentEditingMessageId) saveEdit(currentEditingMessageId, editModalTextarea.value); closeEditModal(); });
             editModalCancel.addEventListener('click', closeEditModal);
-            editModalOverlay.addEventListener('click', (e) => {
-                if (e.target === editModalOverlay) closeEditModal();
-            });
-            editModalTextarea.addEventListener('input', () => autoAdjustTextareaHeight(editModalTextarea));
+            
             toggleSettingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('open'));
             saveSettingsBtn.addEventListener('click', saveSettings);
-            clearChatBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                clearConversation();
-                dropdownMenu.classList.remove('show');
-            });
-            sendBtn.addEventListener('click', handleSendMessage);
-            userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } });
+            clearChatBtn.addEventListener('click', () => { clearConversation(); dropdownMenu.classList.remove('show'); });
+            
+            sendBtn.addEventListener('click', handleSendOrStop);
+            userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendOrStop(); } });
             userInput.addEventListener('input', () => autoAdjustTextareaHeight(userInput));
+            
             loadSettings();
             addMessage({ role: 'assistant', content: '你好，有什么可以帮你？' });
         });
