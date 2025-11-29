@@ -2110,7 +2110,7 @@
                 } catch (error) {
                     if (typingIndicator.parentNode) typingIndicator.remove();
                     if (error.name === 'AbortError') {
-                         if (!assistantMessage) addMessage({ role: 'assistant', content: '_[已中断生成]_' });
+                         if (!assistantMessage) addMessage({ role: 'assistant', content: '[已中断生成]' });
                     } else {
                         addMessage({ role: 'error', content: `请求失败: ${error.message}` });
                     }
