@@ -2171,6 +2171,8 @@
             exportSettingsBtn.addEventListener('click', () => downloadBlob(new Blob([JSON.stringify({ currentId: currentConfigId, configs: configList }, null, 2)], { type: 'application/json' }), 'nchat-settings.json'));
             
             exportConversationBtn.addEventListener('click', () => {
+                const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+                const filename = `nchat_${timestamp}.md`;
                 let md = `# nChat Conversation\n\n**Time:** ${new Date().toLocaleString()}\n\n---\n\n`;
                 conversationHistory.forEach(msg => {
                     const role = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
@@ -2182,7 +2184,8 @@
                     } else content = msg.content;
                     md += `## ${role}\n\n${content}\n\n---\n\n`;
                 });
-                downloadBlob(new Blob([md], { type: 'text/markdown' }), 'conversation.md');
+                
+                downloadBlob(new Blob([md], { type: 'text/markdown' }), filename);
                 dropdownMenu.classList.remove('show');
             });
             
