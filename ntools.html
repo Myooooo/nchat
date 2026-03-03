@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nTools</title>
+    <!-- 引入外部库 -->
+    <script src="js/marked.min.js"></script>
+    <script src="js/qrcode.min.js"></script>
+
+    <style>
+        /* --- 核心变量 --- */
+        :root {
+            --bg-color: #0f1115;
+            --sidebar-bg: #161b22;
+            --card-bg: #1e232e;
+            --text-main: #e6edf3;
+            --text-sub: #8b949e;
+            --accent: #2f81f7;
+            --accent-hover: #58a6ff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --border: #30363d;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --radius: 8px;
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: var(--font-stack); background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
+
+        /* --- 布局结构 --- */
+        .app-container { display: flex; height: 100vh; width: 100vw; }
+        
+        /* 侧边栏 */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 24px; font-weight: 800; margin-bottom: 40px; display: flex;
+            align-items: center; gap: 10px; color: var(--accent-hover); letter-spacing: -1px;
+        }
+
+        .nav-item {
+            padding: 12px 16px; margin-bottom: 8px; border-radius: var(--radius);
+            cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center;
+            gap: 12px; color: var(--text-sub); font-weight: 500;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .nav-item.active { background: rgba(47, 129, 247, 0.15); color: var(--accent-hover); border-left: 3px solid var(--accent); }
+        .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* 内容区 */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .tab-panel { display: none; height: 100%; animation: fadeIn 0.3s ease; flex-direction: column; }
+        .tab-panel.active { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { margin: 0 0 20px 0; font-weight: 600; font-size: 28px; }
+
+        /* --- UI 组件 --- */
+        button {
+            background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main);
+            padding: 8px 16px; border-radius: var(--radius); cursor: pointer; transition: 0.2s; font-size: 14px;
+        }
+        button:hover { border-color: var(--text-sub); }
+        button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+        button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        button.danger { background: rgba(248, 81, 73, 0.1); border-color: var(--danger); color: var(--danger); }
+        button.danger:hover { background: rgba(248, 81, 73, 0.2); }
+        
+        input, select, textarea {
+            background: #0d1117; border: 1px solid var(--border); color: var(--text-main);
+            padding: 10px; border-radius: var(--radius); width: 100%; font-family: inherit; font-size: 14px; margin-bottom: 10px;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+        label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+
+        /* --- 全局模态框 (修复版) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            z-index: 2000; 
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+            /* 关键修复：默认不阻挡鼠标事件，只有显示时才阻挡 */
+            pointer-events: none; 
+        }
+        .modal-overlay.show { 
+            display: flex; 
+            opacity: 1; 
+            /* 关键修复：显示时恢复鼠标事件响应 */
+            pointer-events: auto; 
+        }
+        
+        .modal-card {
+            background: #1e232e; width: 400px; max-width: 90%;
+            border-radius: 12px; padding: 24px; border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column;
+            transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.show .modal-card { transform: scale(1); }
+
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: var(--text-main); }
+        .modal-body { font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 24px; white-space: pre-wrap; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        
+        /* 针对 Todo 详情的特殊 Modal 样式 */
+        #todo-detail-modal .modal-card { width: 500px; }
+        #todo-detail-modal .modal-header { font-size: 20px; color: var(--accent); }
+
+        /* --- 滚动条 --- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+        /* --- 功能1: 待办事项 --- */
+        .todo-input-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .todo-input-full { grid-column: 1 / -1; }
+        
+        .todo-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+        .todo-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #161b22; margin-bottom: 10px; padding: 15px;
+            border-radius: var(--radius); border-left: 4px solid transparent;
+            transition: all 0.2s; cursor: pointer;
+        }
+        .todo-item:hover { transform: translateX(2px); background: #202630; }
+        
+        .todo-item[data-urgent="low"] { border-left-color: var(--success); }
+        .todo-item[data-urgent="medium"] { border-left-color: #d29922; }
+        .todo-item[data-urgent="high"] { border-left-color: #f85149; background: rgba(248, 81, 73, 0.05); }
+        .todo-item[data-urgent="expired"] { border-left-color: #8b949e; opacity: 0.7; }
+        .todo-item.completed { opacity: 0.4; filter: grayscale(1); text-decoration: line-through; border-left-color: var(--border); }
+
+        .todo-content { flex: 1; margin-left: 12px; pointer-events: none; }
+        .delete-btn { padding: 4px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .delete-btn:hover { background: rgba(248, 81, 73, 0.2); color: var(--danger); }
+
+        /* --- 功能2: 二维码 --- */
+        .qr-container { display: flex; flex-direction: column; align-items: center; height: 100%; gap: 20px; padding-top: 20px;}
+        .qr-display { 
+            background: white; padding: 20px; border-radius: 12px; min-width: 200px; min-height: 200px;
+            box-shadow: 0 0 50px rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;
+        }
+        .qr-controls { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+
+        /* --- 功能3: Markdown --- */
+        .md-layout { display: flex; height: 100%; gap: 20px; flex: 1; min-height: 0; }
+        .md-editor, .md-preview { 
+            flex: 1; display: flex; flex-direction: column; background: var(--card-bg); 
+            border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+        }
+        .md-header { padding: 8px 12px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-sub); }
+        textarea.md-input { 
+            flex: 1; resize: none; border: none; background: transparent; 
+            padding: 15px; font-family: 'Fira Code', monospace; line-height: 1.6; margin: 0;
+        }
+        .md-preview-content { padding: 20px; overflow-y: auto; line-height: 1.6; }
+        .md-preview-content table { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 14px; }
+        .md-preview-content th, .md-preview-content td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+        .md-preview-content th { background: rgba(255,255,255,0.05); color: var(--accent); }
+        .md-preview-content pre { background: #0d1117; padding: 10px; border-radius: 6px; overflow-x: auto; }
+
+        /* --- 功能4: 图片转Base64 --- */
+        .img-tool-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; min-height: 0; overflow: hidden; }
+        .img-dropzone {
+            grid-column: 1 / -1; height: 80px; border: 2px dashed var(--border); border-radius: var(--radius);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+            color: var(--text-sub); font-size: 14px;
+        }
+        .img-dropzone:hover { border-color: var(--accent); color: var(--accent); background: rgba(47, 129, 247, 0.05); }
+        .img-box { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius);}
+        .img-preview { flex: 1; object-fit: contain; background: repeating-conic-gradient(#161b22 0% 25%, #0d1117 0% 50%) 50% / 20px 20px; border-radius: 4px; max-height: 100%; width: 100%;}
+        
+        .range-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; width: 100%; }
+        input[type=range] { 
+            flex: 1; margin: 0; height: 6px; accent-color: var(--accent); cursor: pointer;
+            background: #30363d; border-radius: 3px; border: none; padding: 0;
+        }
+        
+        .res-info { font-size: 12px; color: var(--text-sub); text-align: center; margin-bottom: 5px; font-family: monospace; }
+        .res-highlight { color: var(--accent); font-weight: bold; }
+
+        /* --- 功能5: nChat --- */
+        .iframe-container { width: 100%; height: 100%; border: none; background: #fff; border-radius: var(--radius); }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            nTools
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="switchTab('todo')">
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 待办事项
+            </div>
+            <div class="nav-item" onclick="switchTab('qr')">
+                <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h8v8h-8zm2 2v4h4v-4z"/></svg> 二维码生成
+            </div>
+            <div class="nav-item" onclick="switchTab('md')">
+                <svg viewBox="0 0 24 24"><path d="M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6h17.12C21.35 6 22 6.63 22 7.41v9.18c0 .78-.65 1.41-1.44 1.41zM7 9v6h2v-3.59l2.5 2.5 2.5-2.5V15h2V9h-2l-2.5 2.5L9 9H7z"/></svg> MD 渲染
+            </div>
+            <div class="nav-item" onclick="switchTab('img')">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> 图片转换
+            </div>
+            <div class="nav-item" onclick="switchTab('nchat')">
+                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> nChat
+            </div>
+        </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        
+        <!-- Tab 1: 待办事项 -->
+        <div id="todo" class="tab-panel active">
+            <h2>待办事项</h2>
+            <div class="toolbar">
+                <button class="primary" onclick="todo.export()">导出 JSON</button>
+                <button onclick="document.getElementById('todo-import').click()">导入 JSON</button>
+                <input type="file" id="todo-import" style="display:none" onchange="todo.import(this)" accept=".json">
+            </div>
+
+            <div class="card" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                <div class="todo-input-area">
+                    <input type="text" id="todo-title" placeholder="任务标题..." class="todo-input-full">
+                    <textarea id="todo-content" placeholder="任务详情内容..." rows="2" class="todo-input-full"></textarea>
+                    <div>
+                        <label>截止日期</label>
+                        <input type="datetime-local" id="todo-date" style="margin:0">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button class="primary" style="width:100%" onclick="todo.add()">添加任务</button>
+                    </div>
+                </div>
+                
+                <div class="toolbar" style="margin-bottom:10px; font-size:12px; color:var(--text-sub); border-bottom:1px solid var(--border); padding-bottom:10px;">
+                    <span><span style="color:var(--accent)">●</span> 点击列表项查看详情</span>
+                    <span style="margin-left:auto;">
+                        <span style="color:#f85149">●</span> 紧急
+                        <span style="color:#d29922; margin-left:8px;">●</span> 一般
+                    </span>
+                </div>
+                
+                <ul class="todo-list" id="todo-list">
+                    <!-- JS 生成列表 -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab 2: 二维码生成 -->
+        <div id="qr" class="tab-panel">
+            <h2>二维码生成器</h2>
+            <div class="qr-container">
+                <div class="qr-display">
+                    <div id="qrcode"></div>
+                    <div id="qr-placeholder" style="color:#ccc; font-size:14px;">点击生成按钮</div>
+                </div>
+                <div class="qr-controls">
+                    <label>网址 / 文本</label>
+                    <input type="text" id="qr-text" value="https://example.com" placeholder="输入内容">
+                    <label>尺寸 (px)</label>
+                    <select id="qr-size">
+                        <option value="128">128px</option>
+                        <option value="256" selected>256px</option>
+                        <option value="512">512px</option>
+                    </select>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="primary" style="flex:1" onclick="qrTool.generate()">生成二维码</button>
+                        <button style="flex:1" onclick="qrTool.download()">下载 PNG</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Markdown -->
+        <div id="md" class="tab-panel">
+            <h2>实时 Markdown 渲染</h2>
+            <div class="toolbar">
+                <button class="primary" onclick="mdTool.export()">导出 .md</button>
+                <button onclick="document.getElementById('md-import').click()">导入 .md</button>
+                <input type="file" id="md-import" style="display:none" onchange="mdTool.import(this)" accept=".md,.txt">
+            </div>
+            <div class="md-layout">
+                <div class="md-editor">
+                    <div class="md-header">编辑区</div>
+                    <textarea id="md-input" class="md-input" spellcheck="false" placeholder="# 输入 Markdown..."></textarea>
+                </div>
+                <div class="md-preview">
+                    <div class="md-header">预览</div>
+                    <div id="md-output" class="md-preview-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: 图片转Base64 -->
+        <div id="img" class="tab-panel">
+            <h2>图片与 Base64 转换</h2>
+            <div class="img-dropzone" onclick="document.getElementById('img-file').click()">
+                <span>点击选择图片 或 拖拽至此</span>
+                <input type="file" id="img-file" style="display:none" accept="image/*" onchange="imgTool.loadFile(this.files[0])">
+            </div>
+            <br>
+            <div class="img-tool-layout">
+                <div class="img-box">
+                    <!-- 分辨率显示 -->
+                    <div class="res-info">
+                        原始: <span id="res-original" class="res-highlight">-</span> 
+                        &nbsp;→&nbsp; 
+                        目标: <span id="res-target" class="res-highlight">-</span>
+                    </div>
+
+                    <div class="range-container">
+                        <span style="font-size:12px; color:var(--text-sub); width:35px;">10%</span>
+                        <input type="range" id="img-scale" min="10" max="100" value="100" oninput="imgTool.updateResInfo()">
+                        <span style="font-size:12px; color:var(--text-sub); width:40px; text-align:right;" id="scale-label">100%</span>
+                    </div>
+                    
+                    <img id="img-preview" class="img-preview" alt="预览">
+                    <button class="primary" style="margin-top:10px; width:100%;" onclick="imgTool.convert()">转Base64</button>
+                </div>
+                <div class="img-box">
+                    <label>Base64 结果</label>
+                    <textarea id="base64-output" style="flex:1; resize:none; font-family:monospace; color:var(--success); font-size:12px;" placeholder="在此粘贴Base64以还原图片，或生成结果"></textarea>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button style="flex:1" onclick="imgTool.copy()">复制结果</button>
+                        <button class="primary" style="flex:1" onclick="imgTool.base64ToImage()">转图片</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: nChat -->
+        <div id="nchat" class="tab-panel" style="flex:1; background:#fff; border-radius:8px; overflow:hidden;">
+            <iframe src="nchat-lite.html" class="iframe-container"></iframe>
+        </div>
+    </main>
+</div>
+
+<!-- 全局通用模态框 (确认/提示) -->
+<div id="global-modal" class="modal-overlay" onclick="if(event.target===this) nModal.close()">
+    <div class="modal-card">
+        <div class="modal-header" id="gm-title">标题</div>
+        <div class="modal-body" id="gm-body">内容</div>
+        <div class="modal-actions" id="gm-actions">
+            <!-- 动态注入按钮 -->
+        </div>
+    </div>
+</div>
+
+<!-- Todo 详情专用模态框 -->
+<div id="todo-detail-modal" class="modal-overlay" onclick="if(event.target===this) document.getElementById('todo-detail-modal').classList.remove('show')">
+    <div class="modal-card">
+        <div class="modal-header" id="modal-title"></div>
+        <div class="modal-body" id="modal-content"></div>
+        <div class="modal-meta" id="modal-meta" style="font-size:12px; color:var(--text-sub); border-top:1px solid var(--border); padding-top:10px;"></div>
+        <div class="modal-actions">
+            <button onclick="document.getElementById('todo-detail-modal').classList.remove('show')">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 全局模态框工具 ---
+    const nModal = {
+        overlay: document.getElementById('global-modal'),
+        title: document.getElementById('gm-title'),
+        body: document.getElementById('gm-body'),
+        actions: document.getElementById('gm-actions'),
+        timer: null,
+
+        // 基础显示方法
+        show({ title, content, buttons = [] }) {
+            // 清除之前的定时器，防止冲突
+            if(this.timer) clearTimeout(this.timer);
+            
+            this.title.innerText = title;
+            this.body.innerText = content;
+            this.actions.innerHTML = '';
+            
+            buttons.forEach(btn => {
+                const b = document.createElement('button');
+                b.innerText = btn.text;
+                if(btn.type === 'primary') b.className = 'primary';
+                if(btn.type === 'danger') b.className = 'danger';
+                b.onclick = () => {
+                    this.close();
+                    if(btn.onClick) btn.onClick();
+                };
+                this.actions.appendChild(b);
+            });
+
+            this.overlay.style.display = 'flex';
+            // 延时触发动画，确保 display:flex 生效后再改变 opacity
+            setTimeout(() => this.overlay.classList.add('show'), 10);
+        },
+
+        close() {
+            this.overlay.classList.remove('show');
+            // 等待动画结束后隐藏，并清除定时器防止内存泄漏或逻辑错误
+            if(this.timer) clearTimeout(this.timer);
+            this.timer = setTimeout(() => {
+                this.overlay.style.display = 'none';
+            }, 200); // 必须与 CSS transition 时间匹配
+        },
+
+        // 快捷方式：确认框
+        confirm(content, onConfirm) {
+            this.show({
+                title: '请确认',
+                content: content,
+                buttons: [
+                    { text: '取消', type: 'normal' },
+                    { text: '确定删除', type: 'danger', onClick: onConfirm }
+                ]
+            });
+        },
+
+        // 快捷方式：提示框
+        alert(content) {
+            this.show({
+                title: '提示',
+                content: content,
+                buttons: [ { text: '好的', type: 'primary' } ]
+            });
+        }
+    };
+
+    // --- 导航逻辑 ---
+    function switchTab(id) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelector(`.nav-item[onclick="switchTab('${id}')"]`).classList.add('active');
+    }
+
+    // --- 功能1: 待办事项逻辑 ---
+    const todo = {
+        data: JSON.parse(localStorage.getItem('ntools_todo')) || [],
+        
+        init() {
+            this.render();
+            setInterval(() => this.render(), 60000);
+        },
+
+        save() {
+            localStorage.setItem('ntools_todo', JSON.stringify(this.data));
+            this.render();
+        },
+
+        add() {
+            const title = document.getElementById('todo-title').value.trim();
+            const content = document.getElementById('todo-content').value.trim();
+            const date = document.getElementById('todo-date').value;
+
+            if (!title) return nModal.alert('请输入任务标题');
+            if (!date) return nModal.alert('请选择截止时间');
+
+            this.data.push({
+                id: Date.now(),
+                title,
+                content,
+                due: new Date(date).getTime(),
+                completed: false
+            });
+            
+            document.getElementById('todo-title').value = '';
+            document.getElementById('todo-content').value = '';
+            this.save();
+        },
+
+        toggle(id) {
+            const item = this.data.find(i => i.id === id);
+            if (item) item.completed = !item.completed;
+            this.save();
+        },
+
+        remove(id, event) {
+            event.stopPropagation();
+            // 使用自定义弹窗代替原生 confirm
+            nModal.confirm('确定要彻底删除这条任务吗？此操作无法撤销。', () => {
+                this.data = this.data.filter(i => i.id !== id);
+                this.save();
+            });
+        },
+
+        showDetails(id) {
+            const item = this.data.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-title').innerText = item.title;
+            document.getElementById('modal-content').innerText = item.content || "（无详细内容）";
+            
+            const dateStr = new Date(item.due).toLocaleString();
+            const timeLeft = this.formatTimeLeft(item.due - Date.now()).text;
+            document.getElementById('modal-meta').innerHTML = `截止时间: ${dateStr} <span style="margin-left:10px; color:var(--accent)">${timeLeft}</span>`;
+            
+            const modal = document.getElementById('todo-detail-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        },
+
+        formatTimeLeft(ms) {
+            if (ms < 0) return { text: "已超时", expired: true };
+            const diffMin = Math.floor(ms / 60000);
+            if (diffMin < 60) return { text: `${diffMin} 分钟后`, expired: false };
+            const diffHour = Math.floor(diffMin / 60);
+            if (diffHour < 24) return { text: `${diffHour} 小时后`, expired: false };
+            const diffDay = Math.floor(diffHour / 24);
+            return { text: `${diffDay} 天后`, expired: false };
+        },
+
+        getUrgency(timeLeftMs, isExpired) {
+            if (isExpired) return 'expired';
+            if (timeLeftMs < 3600000) return 'high'; 
+            if (timeLeftMs < 86400000) return 'medium'; 
+            return 'low';
+        },
+
+        render() {
+            const list = document.getElementById('todo-list');
+            list.innerHTML = '';
+            const now = Date.now();
+            
+            this.data.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                return a.due - b.due;
+            });
+
+            this.data.forEach(item => {
+                const timeLeftMs = item.due - now;
+                const timeInfo = this.formatTimeLeft(timeLeftMs);
+                const urgency = this.getUrgency(timeLeftMs, timeInfo.expired);
+                
+                const li = document.createElement('li');
+                li.className = `todo-item ${item.completed ? 'completed' : ''}`;
+                li.setAttribute('data-urgent', urgency);
+                li.onclick = () => this.showDetails(item.id); 
+                
+                li.innerHTML = `
+                    <div class="checkbox-wrapper" onclick="event.stopPropagation(); todo.toggle(${item.id})">
+                        <div class="custom-checkbox" style="width:20px;height:20px;border:2px solid #8b949e;border-radius:4px;display:flex;align-items:center;justify-content:center;background:${item.completed ? 'var(--success)' : 'transparent'};border-color:${item.completed ? 'var(--success)' : '#8b949e'}">
+                            <svg style="width:14px;height:14px;fill:white;display:${item.completed ? 'block' : 'none'}" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </div>
+                    </div>
+                    <div class="todo-content">
+                        <div style="font-weight:600; font-size:15px;">${item.title}</div>
+                        <div style="font-size:12px; color:var(--text-sub); display:flex; gap:10px;">
+                            <span>${timeInfo.expired ? '超时' : timeInfo.text}</span>
+                        </div>
+                    </div>
+                    <div class="delete-btn" onclick="todo.remove(${item.id}, event)">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        },
+
+        export() {
+            const blob = new Blob([JSON.stringify(this.data, null, 2)], {type : 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `todo-backup-${Date.now()}.json`;
+            a.click();
+        },
+
+        import(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    this.data = JSON.parse(e.target.result);
+                    this.save();
+                    nModal.alert('导入成功');
+                } catch(err) { nModal.alert('文件格式错误'); }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+    };
+    todo.init();
+
+    // --- 功能2: 二维码逻辑 ---
+    const qrTool = {
+        generate() {
+            const text = document.getElementById('qr-text').value;
+            const size = parseInt(document.getElementById('qr-size').value);
+            const container = document.getElementById('qrcode');
+            
+            if(!text) return nModal.alert("请输入内容");
+
+            container.innerHTML = ''; 
+            document.getElementById('qr-placeholder').style.display = 'none';
+
+            new QRCode(container, {
+                text: text,
+                width: size,
+                height: size,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        },
+
+        download() {
+            setTimeout(() => {
+                const img = document.querySelector('#qrcode img');
+                const canvas = document.querySelector('#qrcode canvas');
+                
+                let url = '';
+                if (img && img.src) url = img.src;
+                else if (canvas) url = canvas.toDataURL("image/png");
+
+                if (!url) return nModal.alert("请先生成二维码");
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'qrcode.png';
+                link.click();
+            }, 100);
+        }
+    };
+
+    // --- 功能3: Markdown 逻辑 ---
+    const mdTool = {
+        input: document.getElementById('md-input'),
+        output: document.getElementById('md-output'),
+        
+        init() {
+            const saved = localStorage.getItem('ntools_md');
+            this.input.value = saved || `# 欢迎使用 nTools\n拖入文件或输入文本即可。`;
+            this.render();
+            this.input.addEventListener('input', () => {
+                this.render();
+                localStorage.setItem('ntools_md', this.input.value);
+            });
+        },
+        render() { this.output.innerHTML = marked.parse(this.input.value); },
+        export() {
+            const blob = new Blob([this.input.value], {type : 'text/markdown'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `document.md`;
+            a.click();
+        },
+        import(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => { this.input.value = e.target.result; this.render(); };
+            reader.readAsText(file);
+            input.value = '';
+        }
+    };
+    mdTool.init();
+
+    // --- 功能4: 图片 Base64 逻辑 ---
+    const imgTool = {
+        currentFile: null,
+        originalW: 0,
+        originalH: 0,
+        
+        loadFile(file) {
+            if(!file) return;
+            this.currentFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    this.originalW = img.width;
+                    this.originalH = img.height;
+                    document.getElementById('img-preview').src = e.target.result;
+                    document.getElementById('base64-output').value = "点击“转换为 Base64”开始生成...";
+                    this.updateResInfo();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+
+        // 仅更新文字显示，不执行重型转换
+        updateResInfo() {
+            const scale = document.getElementById('img-scale').value;
+            document.getElementById('scale-label').innerText = scale + '%';
+            
+            if (this.originalW > 0) {
+                document.getElementById('res-original').innerText = `${this.originalW} x ${this.originalH}`;
+                const targetW = Math.floor(this.originalW * (scale / 100));
+                const targetH = Math.floor(this.originalH * (scale / 100));
+                document.getElementById('res-target').innerText = `${targetW} x ${targetH}`;
+            }
+        },
+
+        // 执行转换
+        convert() {
+            if (!this.currentFile) return nModal.alert("请先选择或拖入图片");
+            
+            const scaleVal = document.getElementById('img-scale').value;
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const scale = parseInt(scaleVal) / 100;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const base64 = canvas.toDataURL(this.currentFile.type);
+                    document.getElementById('base64-output').value = base64;
+                    document.getElementById('img-preview').src = base64; // 更新预览为压缩图
+                    
+                    // 更新当前图片信息为压缩后的尺寸，防止重复计算错误
+                    this.originalW = canvas.width;
+                    this.originalH = canvas.height;
+                    // 重置滑动条为100%，因为现在的“原图”就是压缩后的图
+                    document.getElementById('img-scale').value = 100;
+                    this.updateResInfo();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(this.currentFile);
+        },
+        
+        // Base64 转图片
+        base64ToImage() {
+            const base64Str = document.getElementById('base64-output').value.trim();
+            if (!base64Str || !base64Str.startsWith('data:image')) {
+                return nModal.alert("无效的图片 Base64 数据");
+            }
+
+            const img = new Image();
+            img.onload = () => {
+                document.getElementById('img-preview').src = base64Str;
+                this.originalW = img.width;
+                this.originalH = img.height;
+                this.currentFile = this.dataURLtoFile(base64Str, 'restored.png');
+                document.getElementById('img-scale').value = 100;
+                this.updateResInfo();
+                nModal.alert("图片已还原到左侧预览区");
+            };
+            img.onerror = () => nModal.alert("无法解析该图片数据");
+            img.src = base64Str;
+        },
+
+        // 辅助：Base64 转 File 对象
+        dataURLtoFile(dataurl, filename) {
+            var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+            return new File([u8arr], filename, {type:mime});
+        },
+
+        copy() {
+            const txt = document.getElementById('base64-output');
+            if (!txt.value) return;
+            txt.select();
+            document.execCommand('copy');
+            nModal.alert('Base64 内容已复制');
+        }
+    };
+
+    // 拖拽支持
+    const dropzone = document.querySelector('.img-dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--accent)'; });
+    dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--border)'; });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border)';
+        if(e.dataTransfer.files.length) {
+            imgTool.loadFile(e.dataTransfer.files[0]);
+        }
+    });
+
+</script>
+</body>
+</html>
