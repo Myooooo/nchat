@@ -641,6 +641,72 @@
             pointer-events: none;
         }
 
+        /* Details button with tooltip */
+        .footer-btn.details-btn {
+            position: relative;
+            margin-right: auto;
+        }
+
+        .footer-btn.details-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .message-stats-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 8px;
+            padding: 10px 14px;
+            background: var(--panel-bg-color);
+            border: 1px solid var(--glass-border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 0.8em;
+            color: var(--text-color);
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(5px);
+            transition: all 0.2s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .footer-btn.details-btn:hover .message-stats-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .message-stats-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 14px;
+            border: 6px solid transparent;
+            border-top-color: var(--glass-border-color);
+        }
+
+        .message-stats-tooltip .stat-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 4px;
+        }
+
+        .message-stats-tooltip .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-stats-tooltip .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .message-stats-tooltip .stat-value {
+            font-weight: 500;
+            font-family: "SF Mono", "Menlo", monospace;
+        }
+
         .input-area-container {
             position: absolute;
             bottom: 0;
@@ -850,6 +916,8 @@
         <div id="main-menu" class="dropdown-menu">
             <a href="#" id="theme-toggle-btn">切换深色/浅色模式</a>
             <a href="#" id="export-conversation-btn">导出对话</a>
+            <a href="#" id="backup-conversation-btn">备份对话</a>
+            <a href="#" id="restore-conversation-btn">恢复对话</a>
             <a href="#" id="clear-chat-btn">清除对话</a>
         </div>
         <div id="config-dropdown-menu" class="dropdown-menu">
@@ -881,10 +949,10 @@
                 </div>
                 <hr style="border:0; border-top:1px solid var(--glass-border-color); width:100%; margin: 5px 0;">
                 <div class="input-group">
-                    <label for="system-prompt">系统提示词 (System Prompt)</label>
+                    <label for="system-prompt">System Prompt</label>
                     <textarea id="system-prompt" rows="3" placeholder="例如: 你是一个专业的全栈工程师，请用中文回答。"></textarea>
                 </div>
-                <div class="input-group"><label for="api-url">API URL (Base URL)</label><input type="text" id="api-url" placeholder="例如: https://api.deepseek.com"></div>
+                <div class="input-group"><label for="api-url">Base URL</label><input type="text" id="api-url" placeholder="例如: https://api.deepseek.com"></div>
                 <div class="input-group"><label for="api-key">API Key</label><input type="password" id="api-key"></div>
                 <div class="input-group"><label for="model-id">Model ID</label><input type="text" id="model-id" placeholder="例如: deepseek-chat"></div>
                 <!-- Advanced Settings Section -->
@@ -978,8 +1046,15 @@
             const configDropdownMenu = getEl('config-dropdown-menu');
             const exportSettingsBtn = getEl('export-settings-btn');
             const exportConversationBtn = getEl('export-conversation-btn');
+            const backupConversationBtn = getEl('backup-conversation-btn');
+            const restoreConversationBtn = getEl('restore-conversation-btn');
             const importSettingsBtn = getEl('import-settings-btn');
             const importSettingsInput = getEl('import-settings-input');
+            const restoreConversationInput = document.createElement('input');
+            restoreConversationInput.type = 'file';
+            restoreConversationInput.hidden = true;
+            restoreConversationInput.accept = '.json';
+            document.body.appendChild(restoreConversationInput);
             const customPromptOverlay = getEl('custom-prompt-overlay');
             const customPromptTitle = getEl('custom-prompt-title');
             const customPromptMessage = getEl('custom-prompt-message');
@@ -1000,6 +1075,7 @@
             let currentEditingMessageId = null;
             let abortController = null;
             const generateId = () => Math.random().toString(36).substr(2, 9);
+            const CONVERSATION_STORAGE_KEY = 'nchat-conversation';
 
             // --- Theme Management ---
             const initTheme = () => {
@@ -1277,14 +1353,54 @@
                 }
             });
 
-            // --- Chat Logic ---
+            const saveConversation = () => {
+                localStorage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify(conversationHistory));
+            };
+
+            const loadConversation = () => {
+                const saved = localStorage.getItem(CONVERSATION_STORAGE_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            conversationHistory = parsed;
+                            chatContainer.innerHTML = '';
+                            conversationHistory.forEach(msg => {
+                                if (msg.role === 'user') {
+                                    const html = `<p>${msg.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                    addMessage({ id: msg.id, role: 'user', content: html, isHtml: true });
+                                } else if (msg.role === 'assistant') {
+                                    addMessage({ id: msg.id, role: 'assistant', content: msg.content, reasoning: msg.reasoning, stats: msg.stats });
+                                }
+                            });
+                            return true;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load conversation:', e);
+                    }
+                }
+                return false;
+            };
+
             const clearConversation = async () => {
                 if (isAssistantResponding) return;
                 const confirmed = await showCustomPrompt('清除对话', '确定要清除所有对话记录吗？', { isConfirm: true, confirmText: '清除', isDestructive: true });
                 if (confirmed) {
                     conversationHistory = []; chatContainer.innerHTML = '';
+                    localStorage.removeItem(CONVERSATION_STORAGE_KEY);
                     addMessage({ role: 'assistant', content: '新对话已开始。' });
                 }
+            };
+
+            const removeErrorMessages = () => {
+                const errorMessages = chatContainer.querySelectorAll('.message.error');
+                errorMessages.forEach(el => {
+                    const id = el.dataset.id;
+                    if (id) {
+                        conversationHistory = conversationHistory.filter(m => m.id !== id);
+                    }
+                    el.remove();
+                });
             };
 
             const autoAdjustTextareaHeight = (el) => {
@@ -1337,6 +1453,7 @@
             
             const handleRegenerate = async (id) => {
                 if (isAssistantResponding) return;
+                removeErrorMessages(); // Remove error messages when regenerating
                 const msgIndex = conversationHistory.findIndex(msg => msg.id === id);
                 if (msgIndex === -1) return;
                 const targetMsg = conversationHistory[msgIndex];
@@ -1355,19 +1472,46 @@
             };
 
             const addMessage = (message) => {
-                const { id, role, content, isHtml } = message;
+                const { id, role, content, isHtml, stats, reasoning } = message;
                 const messageElement = document.createElement('div');
                 messageElement.classList.add('message', role);
                 if (id) messageElement.dataset.id = id;
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
-                contentDiv.innerHTML = isHtml ? content : renderMessageContent(content);
+
+                // If there's reasoning content, prepend it as a details element
+                if (reasoning) {
+                    const details = document.createElement('details');
+                    details.innerHTML = `<summary>已思考</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>`;
+                    details.querySelector('.reasoning-content').innerHTML = renderMessageContent(reasoning);
+                    contentDiv.appendChild(details);
+                }
+
+                const contentWrapper = document.createElement('div');
+                contentWrapper.innerHTML = isHtml ? content : renderMessageContent(content);
+                contentDiv.appendChild(contentWrapper);
                 messageElement.appendChild(contentDiv);
-                
+
                 if (id && (role === 'user' || role === 'assistant')) {
                     const footer = document.createElement('div');
                     footer.className = 'message-footer';
-                    
+
+                    // Details Button (only for assistant messages with stats)
+                    if (role === 'assistant' && stats) {
+                        const detailsBtn = document.createElement('button');
+                        detailsBtn.className = 'footer-btn details-btn';
+                        detailsBtn.title = '详情';
+                        detailsBtn.innerHTML = `
+                            <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+                            <div class="message-stats-tooltip">
+                                <div class="stat-row"><span class="stat-label">Context:</span><span class="stat-value">${stats.contextLength || 0} tokens</span></div>
+                                <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${stats.outputLength || 0} tokens</span></div>
+                                <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${stats.outputRate || 0} t/s</span></div>
+                            </div>
+                        `;
+                        footer.appendChild(detailsBtn);
+                    }
+
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'footer-btn';
                     copyBtn.title = '复制';
@@ -1402,7 +1546,7 @@
                         const confirmed = await showCustomPrompt('删除消息', '确定删除？', { isConfirm: true, confirmText: '删除', isDestructive: true });
                         if (confirmed) handleDeleteMessage(id);
                     };
-                    
+
                     footer.appendChild(copyBtn);
                     footer.appendChild(regenBtn);
                     footer.appendChild(editBtn);
@@ -1411,11 +1555,14 @@
                 }
                 chatContainer.appendChild(messageElement);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-                
+
                 if(isAssistantResponding) {
                      messageElement.querySelectorAll('.footer-btn').forEach(btn => btn.disabled = true);
                 }
-                
+
+                // Auto-save conversation after adding a message
+                saveConversation();
+
                 return messageElement;
             };
 
@@ -1440,12 +1587,21 @@
                 }
             };
 
+            // Estimate token count (rough approximation: 1 token ≈ 4 characters for English, 1 token ≈ 1.5 characters for Chinese)
+            const estimateTokens = (text) => {
+                if (!text) return 0;
+                // Count Chinese characters as 1 token each, and non-Chinese as 0.25 tokens per character
+                const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+                const otherChars = text.length - chineseChars;
+                return Math.ceil(chineseChars + otherChars / 4);
+            };
+
             const fetchAssistantResponse = async () => {
                 if (conversationHistory.length === 0) return;
-                
+
                 setInteractionState(true);
                 abortController = new AbortController();
-                
+
                 const typingIndicator = document.createElement('div');
                 typingIndicator.className = 'typing-indicator';
                 typingIndicator.innerHTML = 'Thinking...';
@@ -1456,6 +1612,9 @@
                 let reasoningText = '', reasoningContainer = null, reasoningSummaryElement = null;
                 let thinkingStartTime = null, reasoningFinished = false;
                 let isDeepSeekThinking = false;
+                let outputTokenCount = 0;
+                let startTime = null;
+                let contextLength = 0;
 
                 try {
                     // Flatten history to simple string content
@@ -1472,6 +1631,14 @@
                         }
                         return { role: rest.role, content: contentStr };
                     });
+
+                    // Calculate context length (approximate)
+                    contextLength = historyToSend.reduce((sum, msg) => {
+                        if (typeof msg.content === 'string') {
+                            return sum + estimateTokens(msg.content);
+                        }
+                        return sum;
+                    }, 0);
 
                     if (currentSettings.systemPrompt) historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
                     
@@ -1492,6 +1659,7 @@
                         fetchUrl += '/chat/completions';
                     }
 
+                    startTime = performance.now();
                     const response = await fetch(fetchUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
@@ -1599,6 +1767,7 @@
                                             assistantMessageElement.querySelector('.message-content').appendChild(finalContentElement);
                                         }
                                         assistantMessage.content += contentChunk;
+                                        outputTokenCount += estimateTokens(contentChunk);
                                         finalContentElement.innerHTML = renderMessageContent(assistantMessage.content);
                                     }
                                 }
@@ -1614,7 +1783,46 @@
                         addMessage({ role: 'error', content: `请求失败: ${error.message}` });
                     }
                 } finally {
-                    if (assistantMessage) conversationHistory.push({ id: assistantMessage.id, role: 'assistant', content: assistantMessage.content });
+                    if (assistantMessage) {
+                        const endTime = performance.now();
+                        const duration = (endTime - startTime) / 1000; // seconds
+                        const outputRate = duration > 0 ? (outputTokenCount / duration).toFixed(1) : 0;
+
+                        const messageWithStats = {
+                            id: assistantMessage.id,
+                            role: 'assistant',
+                            content: assistantMessage.content,
+                            reasoning: reasoningText || null,
+                            stats: {
+                                contextLength,
+                                outputLength: outputTokenCount,
+                                outputRate: parseFloat(outputRate)
+                            }
+                        };
+
+                        // Update the existing message element with stats (don't remove and re-add)
+                        if (assistantMessageElement) {
+                            // Add details button to the footer
+                            const footer = assistantMessageElement.querySelector('.message-footer');
+                            if (footer && !footer.querySelector('.details-btn')) {
+                                const detailsBtn = document.createElement('button');
+                                detailsBtn.className = 'footer-btn details-btn';
+                                detailsBtn.title = '详情';
+                                detailsBtn.innerHTML = `
+                                    <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+                                    <div class="message-stats-tooltip">
+                                        <div class="stat-row"><span class="stat-label">Context:</span><span class="stat-value">${contextLength} tokens</span></div>
+                                        <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${outputTokenCount} tokens</span></div>
+                                        <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${outputRate} t/s</span></div>
+                                    </div>
+                                `;
+                                footer.insertBefore(detailsBtn, footer.firstChild);
+                            }
+                        }
+
+                        conversationHistory.push(messageWithStats);
+                        saveConversation(); // Save immediately after adding assistant message
+                    }
                     setInteractionState(false);
                     abortController = null;
                     userInput.focus();
@@ -1626,20 +1834,23 @@
                     if (abortController) abortController.abort();
                     return;
                 }
-                
+
+                // Remove error messages when sending new message
+                removeErrorMessages();
+
                 const userText = userInput.value.trim();
                 if (!userText) return;
                 if (!currentSettings.apiKey || !currentSettings.apiUrl || !currentSettings.modelId) {
                     addMessage({ role: 'error', content: '请先完成并保存 API 配置。' }); return;
                 }
-                
+
                 // Simple string content structure
                 const messageHtml = `<p>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
-                
+
                 const messageId = Date.now();
-                addMessage({ id: messageId, role: 'user', content: messageHtml, isHtml: true });
                 conversationHistory.push({ id: messageId, role: 'user', content: userText });
-                
+                addMessage({ id: messageId, role: 'user', content: messageHtml, isHtml: true });
+
                 userInput.value = ''; autoAdjustTextareaHeight(userInput);
                 fetchAssistantResponse();
             };
@@ -1668,7 +1879,57 @@
                 downloadBlob(new Blob([md], { type: 'text/markdown' }), filename);
                 dropdownMenu.classList.remove('show');
             });
-            
+
+            // Backup conversation to JSON file
+            backupConversationBtn.addEventListener('click', () => {
+                const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+                const filename = `nchat_backup_${timestamp}.json`;
+                const backupData = {
+                    version: 1,
+                    timestamp: new Date().toISOString(),
+                    conversation: conversationHistory
+                };
+                downloadBlob(new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' }), filename);
+                dropdownMenu.classList.remove('show');
+            });
+
+            // Restore conversation from JSON file
+            restoreConversationBtn.addEventListener('click', () => {
+                restoreConversationInput.click();
+                dropdownMenu.classList.remove('show');
+            });
+
+            restoreConversationInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.conversation && Array.isArray(data.conversation)) {
+                            conversationHistory = data.conversation;
+                            chatContainer.innerHTML = '';
+                            conversationHistory.forEach(msg => {
+                                if (msg.role === 'user') {
+                                    const html = `<p>${msg.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                    addMessage({ id: msg.id, role: 'user', content: html, isHtml: true });
+                                } else if (msg.role === 'assistant') {
+                                    addMessage({ id: msg.id, role: 'assistant', content: msg.content, reasoning: msg.reasoning, stats: msg.stats });
+                                }
+                            });
+                            saveConversation();
+                            showCustomPrompt('成功', '对话已恢复');
+                        } else {
+                            showCustomPrompt('错误', '无效的备份文件格式');
+                        }
+                    } catch (err) {
+                        showCustomPrompt('错误', '无法解析备份文件');
+                    }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            });
+
             importSettingsBtn.addEventListener('click', () => importSettingsInput.click());
             importSettingsInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -1704,7 +1965,11 @@
             userInput.addEventListener('input', () => autoAdjustTextareaHeight(userInput));
             
             loadSettings();
-            addMessage({ role: 'assistant', content: '你好，有什么可以帮你？' });
+            // Try to load saved conversation, otherwise show welcome message
+            const hasLoadedConversation = loadConversation();
+            if (!hasLoadedConversation) {
+                addMessage({ role: 'assistant', content: '你好，有什么可以帮你？' });
+            }
         });
     </script>
 </body>
