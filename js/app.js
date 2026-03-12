@@ -622,19 +622,49 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPreviews();
         }
     });
+
+    const compressImage = (file, maxSize = 1024, quality = 0.8) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    let { width, height } = img;
+                    if (width > maxSize || height > maxSize) {
+                        if (width > height) {
+                            height = Math.round((height / width) * maxSize);
+                            width = maxSize;
+                        } else {
+                            width = Math.round((width / height) * maxSize);
+                            height = maxSize;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
     uploadBtn.addEventListener('click', () => imageInput.click());
-    imageInput.addEventListener('change', e => {
+    imageInput.addEventListener('change', async e => {
         const files = Array.from(e.target.files);
         if (stagedImages.length + files.length > MAX_IMAGES) {
             showCustomPrompt('超限', `最多 ${MAX_IMAGES} 张图片。`);
             files.splice(MAX_IMAGES - stagedImages.length);
         }
-        files.forEach(file => {
-            if (!file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (event) => stagedImages.push({ id: Date.now() + Math.random(), dataUrl: event.target.result }) && renderPreviews();
-            reader.readAsDataURL(file);
-        });
+        for (const file of files) {
+            if (!file.type.startsWith('image/')) continue;
+            const compressedDataUrl = await compressImage(file);
+            stagedImages.push({ id: Date.now() + Math.random(), dataUrl: compressedDataUrl });
+        }
+        renderPreviews();
         imageInput.value = '';
     });
     
@@ -801,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addMessage({ role: 'error', content: `请求失败: ${error.message}` });
             }
         } finally {
-            if (assistantMessage) {
+            if (assistantMessage && assistantMessage.content.trim()) {
                 const endTime = performance.now();
                 const duration = (endTime - startTime) / 1000; // seconds
                 const outputRate = duration > 0 ? (outputTokenCount / duration).toFixed(1) : 0;
@@ -843,6 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 conversationHistory.push(messageWithStats);
                 saveConversation(); // Save immediately after adding assistant message
+            } else if (assistantMessageElement) {
+                assistantMessageElement.remove();
             }
             setInteractionState(false);
             abortController = null;
@@ -867,7 +899,10 @@ document.addEventListener('DOMContentLoaded', () => {
             addMessage({ role: 'error', content: '请先完成并保存 API 配置。' }); return;
         }
 
-        const userMessageContent = [{ type: 'text', text: userText }];
+        const userMessageContent = [];
+        if (userText) {
+            userMessageContent.push({ type: 'text', text: userText });
+        }
         stagedImages.forEach(img => userMessageContent.push({ type: 'image_url', image_url: { url: img.dataUrl } }));
 
         let messageHtml = userText ? `<p>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';

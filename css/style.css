@@ -70,6 +70,34 @@ html[data-lite="true"] *::after {
     scroll-behavior: auto !important;
 }
 
+html[data-lite="true"] .chat-container {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .message {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .dropdown-menu {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .settings-panel {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .input-area-container {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .modal-content {
+    box-shadow: none;
+}
+
+html[data-lite="true"] .message-stats-tooltip {
+    box-shadow: none;
+}
+
 /* Light mode specific text adjustments */
 html[data-theme="light"] .message.user {
     color: #ffffff;
