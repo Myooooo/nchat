@@ -710,8 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const payload = {
                 model: currentSettings.modelId,
                 messages: historyToSend,
-                stream: true,
-                max_tokens: 4096
+                stream: true
             };
             if (currentSettings.enableAdvanced) {
                 payload.temperature = parseFloat(currentSettings.temperature);
@@ -835,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="stat-row"><span class="stat-label">Context:</span><span class="stat-value">${contextLength} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${outputTokenCount} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${outputRate} t/s</span></div>
-                                ${thinkingTime > 0 ? `<div class="stat-row"><span class="stat-label">Thinking:</span><span class="stat-value">${thinkingTime}s</span></div>` : ''}
+                                ${thinkingTime > 0 ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${thinkingTime}s</span></div>` : ''}
                             </div>
                         `;
                         footer.insertBefore(detailsBtn, footer.firstChild);
