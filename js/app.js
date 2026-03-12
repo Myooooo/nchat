@@ -766,12 +766,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const json = JSON.parse(data);
                         const delta = json.choices[0]?.delta || {};
 
-                        if (!assistantMessageElement && (delta.reasoning_content || delta.content)) {
+                        if (!assistantMessageElement && (delta.reasoning || delta.reasoning_content || delta.content)) {
                             assistantMessage = { id: Date.now(), role: 'assistant', content: '' };
                             assistantMessageElement = addMessage(assistantMessage);
                         }
 
-                        if (delta.reasoning_content) {
+                        if (delta.reasoning_content || delta.reasoning) {
                             if (!reasoningContainer) {
                                 thinkingStartTime = performance.now();
                                 const details = document.createElement('details');
@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 reasoningContainer = details.querySelector('.reasoning-content');
                                 details.open = true; // Auto open reasoning
                             }
-                            reasoningText += delta.reasoning_content;
+                            reasoningText += delta.reasoning_content ? delta.reasoning_content : delta.reasoning;
                             reasoningContainer.innerHTML = renderMessageContent(reasoningText);
                         }
 
