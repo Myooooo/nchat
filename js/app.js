@@ -824,7 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (hasContent) {
                     const endTime = performance.now();
                     const duration = (endTime - startTime) / 1000; // seconds
-                    const outputRate = duration > 0 ? (completionTokens / (duration - thinkingTime)).toFixed(1) : 0;
+                    const outputRate = duration > 0 ? (completionTokens / duration).toFixed(1) : 0;
                     const outputTime = duration.toFixed(1);
 
                     const messageWithStats = {
