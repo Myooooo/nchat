@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModalCancel = getEl('edit-modal-cancel');
     const inputAreaContainer = getEl('input-area-container');
     const themeToggleBtn = getEl('theme-toggle-btn');
+    const liteModeBtn = getEl('lite-mode-btn');
 
     let conversationHistory = [];
     let configList = [];
@@ -88,6 +89,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     themeToggleBtn.addEventListener('click', toggleTheme);
     initTheme();
+
+    // --- Lite Mode Management ---
+    const initLiteMode = () => {
+        const storedLiteMode = localStorage.getItem('nchat-lite-mode');
+        const isLiteMode = storedLiteMode === 'true';
+        document.documentElement.setAttribute('data-lite', isLiteMode);
+        updateLiteModeBtnText(isLiteMode);
+    };
+
+    const toggleLiteMode = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentLite = document.documentElement.getAttribute('data-lite');
+        const isLiteMode = currentLite === 'true';
+        const newLiteMode = !isLiteMode;
+        document.documentElement.setAttribute('data-lite', newLiteMode);
+        localStorage.setItem('nchat-lite-mode', newLiteMode);
+        updateLiteModeBtnText(newLiteMode);
+        dropdownMenu.classList.remove('show');
+    };
+
+    const updateLiteModeBtnText = (isLiteMode) => {
+        liteModeBtn.textContent = isLiteMode ? '完整模式' : 'Lite 模式';
+    };
+
+    liteModeBtn.addEventListener('click', toggleLiteMode);
+    initLiteMode();
 
     // --- Helper Functions ---
     const syncInputs = (range, number) => {
