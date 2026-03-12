@@ -740,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 signal: abortController.signal
             });
 
-            typingIndicator.remove();
             if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
 
             const reader = response.body.getReader();
@@ -756,6 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (const line of lines) {
                     if (!line.startsWith('data:')) continue;
+                    
+                    typingIndicator.remove();
+
                     if (!started) {
                         startTime = performance.now();
                         started = true;
