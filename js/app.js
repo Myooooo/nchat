@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${stats.outputLength || 0} tokens</span></div>
                         <div class="stat-row"><span class="stat-label">Total:</span><span class="stat-value">${stats.totalLength || (stats.contextLength || 0) + (stats.outputLength || 0)} tokens</span></div>
                         <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${stats.outputRate || 0} t/s</span></div>
-                        ${stats.thinkingTime ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${stats.thinkingTime}s</span></div>` : ''}
+                        ${stats.outputTime ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${stats.outputTime}s</span></div>` : ''}
                     </div>
                 `;
                 footer.appendChild(detailsBtn);
@@ -708,7 +708,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let assistantMessage = null, assistantMessageElement = null, finalContentElement = null;
         let reasoningText = '', reasoningContainer = null, reasoningSummaryElement = null;
         let thinkingStartTime = null, reasoningFinished = false;
+        let thinkingTime = null;
         let startTime = null;
+        let started = false;
         let promptTokens = 0, completionTokens = 0, totalTokens = 0;
 
         try {
@@ -725,16 +727,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 payload.top_p = parseFloat(currentSettings.top_p);
             }
 
-            // URL Processing logic
             let fetchUrl = currentSettings.apiUrl.trim();
-            // Remove trailing slash
             if (fetchUrl.endsWith('/')) fetchUrl = fetchUrl.slice(0, -1);
-            // Automatically append /chat/completions if not present
             if (!fetchUrl.endsWith('/chat/completions')) {
                 fetchUrl += '/chat/completions';
             }
 
-            startTime = performance.now();
             const response = await fetch(fetchUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
@@ -758,6 +756,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (const line of lines) {
                     if (!line.startsWith('data:')) continue;
+                    if (!started) {
+                        startTime = performance.now();
+                        started = true;
+                    }
                     const data = line.substring(5).trimStart();
                     if (data === '[DONE]') break;
                     try {
@@ -785,7 +787,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (delta.content) {
                             if (thinkingStartTime && !reasoningFinished) {
-                                reasoningSummaryElement.textContent = `已思考 (用时 ${((performance.now() - thinkingStartTime)/1000).toFixed(1)}秒)`;
+                                thinkingTime = (performance.now() - thinkingStartTime) / 1000; // seconds
+                                reasoningSummaryElement.textContent = `已思考 (用时 ${(thinkingTime).toFixed(1)}秒)`;
                                 reasoningFinished = true;
                                 assistantMessageElement.querySelector('details').open = false;
                             }
@@ -795,12 +798,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             assistantMessage.content += delta.content;
                             finalContentElement.innerHTML = renderMessageContent(assistantMessage.content);
+                        }
 
-                            if (json.usage) {
-                                promptTokens = json.usage.prompt_tokens || 0;
-                                completionTokens = json.usage.completion_tokens || 0;
-                                totalTokens = json.usage.total_tokens || 0;
-                            }
+                        if (json.usage) {
+                            promptTokens = json.usage.prompt_tokens || 0;
+                            completionTokens = json.usage.completion_tokens || 0;
+                            totalTokens = json.usage.total_tokens || 0;
                         }
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     } catch (e) { }
@@ -809,47 +812,51 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (typingIndicator.parentNode) typingIndicator.remove();
             if (error.name === 'AbortError') {
-                 if (!assistantMessage) addMessage({ role: 'assistant', content: '[已中断生成]' });
+                if (!assistantMessage) {
+                    addMessage({ role: 'assistant', content: '[已中断生成]' });
+                }
             } else {
                 addMessage({ role: 'error', content: `请求失败: ${error.message}` });
             }
         } finally {
-            if (assistantMessage && assistantMessage.content.trim()) {
-                const endTime = performance.now();
-                const duration = (endTime - startTime) / 1000; // seconds
-                const outputRate = duration > 0 ? (completionTokens / duration).toFixed(1) : 0;
+            if (assistantMessage) {
+                const hasContent = assistantMessage.content.trim() || reasoningText.trim();
+                if (hasContent) {
+                    const endTime = performance.now();
+                    const duration = (endTime - startTime) / 1000; // seconds
+                    const outputRate = duration > 0 ? (completionTokens / (duration - thinkingTime)).toFixed(1) : 0;
+                    const outputTime = duration.toFixed(1);
 
-                 const thinkingTime = thinkingStartTime ? ((performance.now() - thinkingStartTime) / 1000).toFixed(1) : 0;
-                 const messageWithStats = {
-                    id: assistantMessage.id,
-                    role: 'assistant',
-                    content: assistantMessage.content,
-                    reasoning: reasoningText || null,
-                    stats: {
-                        contextLength: promptTokens,
-                        outputLength: completionTokens,
-                        totalLength: totalTokens,
-                        outputRate: parseFloat(outputRate),
-                        thinkingTime: parseFloat(thinkingTime)
-                    }
-                };
+                    const messageWithStats = {
+                        id: assistantMessage.id,
+                        role: 'assistant',
+                        content: assistantMessage.content,
+                        reasoning: reasoningText || null,
+                        stats: {
+                            contextLength: promptTokens,
+                            outputLength: completionTokens,
+                            totalLength: totalTokens,
+                            outputRate: parseFloat(outputRate),
+                            outputTime: parseFloat(outputTime)
+                        }
+                    };
 
-                // Update the existing message element with stats (don't remove and re-add)
-                if (assistantMessageElement) {
-                    // Add details button to the footer
-                    const footer = assistantMessageElement.querySelector('.message-footer');
-                    if (footer && !footer.querySelector('.details-btn')) {
-                        const detailsBtn = document.createElement('button');
-                        detailsBtn.className = 'footer-btn details-btn';
-                        detailsBtn.title = '详情';
-                        detailsBtn.innerHTML = `
+                    // Update the existing message element with stats (don't remove and re-add)
+                    if (assistantMessageElement) {
+                        // Add details button to the footer
+                        const footer = assistantMessageElement.querySelector('.message-footer');
+                        if (footer && !footer.querySelector('.details-btn')) {
+                            const detailsBtn = document.createElement('button');
+                            detailsBtn.className = 'footer-btn details-btn';
+                            detailsBtn.title = '详情';
+                            detailsBtn.innerHTML = `
                             <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
                             <div class="message-stats-tooltip">
                                 <div class="stat-row"><span class="stat-label">Prompt:</span><span class="stat-value">${promptTokens} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${completionTokens} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Total:</span><span class="stat-value">${totalTokens} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${outputRate} t/s</span></div>
-                                ${thinkingTime > 0 ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${thinkingTime}s</span></div>` : ''}
+                                ${outputTime > 0 ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${outputTime}s</span></div>` : ''}
                             </div>
                         `;
                         footer.insertBefore(detailsBtn, footer.firstChild);
@@ -857,7 +864,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 conversationHistory.push(messageWithStats);
-                saveConversation(); // Save immediately after adding assistant message
+                saveConversation();
+                }
             } else if (assistantMessageElement) {
                 assistantMessageElement.remove();
             }
