@@ -538,8 +538,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 detailsBtn.innerHTML = `
                     <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
                     <div class="message-stats-tooltip">
-                        <div class="stat-row"><span class="stat-label">Context:</span><span class="stat-value">${stats.contextLength || 0} tokens</span></div>
+                        <div class="stat-row"><span class="stat-label">Prompt:</span><span class="stat-value">${stats.contextLength || 0} tokens</span></div>
                         <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${stats.outputLength || 0} tokens</span></div>
+                        <div class="stat-row"><span class="stat-label">Total:</span><span class="stat-value">${stats.totalLength || (stats.contextLength || 0) + (stats.outputLength || 0)} tokens</span></div>
                         <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${stats.outputRate || 0} t/s</span></div>
                         ${stats.thinkingTime ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${stats.thinkingTime}s</span></div>` : ''}
                     </div>
@@ -692,15 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Estimate token count (rough approximation: 1 token ≈ 4 characters for English, 1 token ≈ 1.5 characters for Chinese)
-    const estimateTokens = (text) => {
-        if (!text) return 0;
-        // Count Chinese characters as 1 token each, and non-Chinese as 0.25 tokens per character
-        const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-        const otherChars = text.length - chineseChars;
-        return Math.ceil(chineseChars + otherChars / 4);
-    };
-
     const fetchAssistantResponse = async () => {
         if (conversationHistory.length === 0) return;
 
@@ -716,26 +708,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let assistantMessage = null, assistantMessageElement = null, finalContentElement = null;
         let reasoningText = '', reasoningContainer = null, reasoningSummaryElement = null;
         let thinkingStartTime = null, reasoningFinished = false;
-        let outputTokenCount = 0;
         let startTime = null;
-        let contextLength = 0;
+        let promptTokens = 0, completionTokens = 0, totalTokens = 0;
 
         try {
             const historyToSend = conversationHistory.map(({ id, ...rest }) => rest);
             if (currentSettings.systemPrompt) historyToSend.unshift({ role: 'system', content: currentSettings.systemPrompt });
-
-            // Calculate context length (approximate)
-            contextLength = historyToSend.reduce((sum, msg) => {
-                if (typeof msg.content === 'string') {
-                    return sum + estimateTokens(msg.content);
-                } else if (Array.isArray(msg.content)) {
-                    return sum + msg.content.reduce((s, item) => {
-                        if (item.type === 'text') return s + estimateTokens(item.text);
-                        return s;
-                    }, 0);
-                }
-                return sum;
-            }, 0);
 
             const payload = {
                 model: currentSettings.modelId,
@@ -816,8 +794,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 assistantMessageElement.querySelector('.message-content').appendChild(finalContentElement);
                             }
                             assistantMessage.content += delta.content;
-                            outputTokenCount += estimateTokens(delta.content);
                             finalContentElement.innerHTML = renderMessageContent(assistantMessage.content);
+
+                            if (json.usage) {
+                                promptTokens = json.usage.prompt_tokens || 0;
+                                completionTokens = json.usage.completion_tokens || 0;
+                                totalTokens = json.usage.total_tokens || 0;
+                            }
                         }
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     } catch (e) { }
@@ -834,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (assistantMessage && assistantMessage.content.trim()) {
                 const endTime = performance.now();
                 const duration = (endTime - startTime) / 1000; // seconds
-                const outputRate = duration > 0 ? (outputTokenCount / duration).toFixed(1) : 0;
+                const outputRate = duration > 0 ? (completionTokens / duration).toFixed(1) : 0;
 
                  const thinkingTime = thinkingStartTime ? ((performance.now() - thinkingStartTime) / 1000).toFixed(1) : 0;
                  const messageWithStats = {
@@ -843,8 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     content: assistantMessage.content,
                     reasoning: reasoningText || null,
                     stats: {
-                        contextLength,
-                        outputLength: outputTokenCount,
+                        contextLength: promptTokens,
+                        outputLength: completionTokens,
+                        totalLength: totalTokens,
                         outputRate: parseFloat(outputRate),
                         thinkingTime: parseFloat(thinkingTime)
                     }
@@ -861,8 +845,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         detailsBtn.innerHTML = `
                             <svg viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
                             <div class="message-stats-tooltip">
-                                <div class="stat-row"><span class="stat-label">Context:</span><span class="stat-value">${contextLength} tokens</span></div>
-                                <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${outputTokenCount} tokens</span></div>
+                                <div class="stat-row"><span class="stat-label">Prompt:</span><span class="stat-value">${promptTokens} tokens</span></div>
+                                <div class="stat-row"><span class="stat-label">Output:</span><span class="stat-value">${completionTokens} tokens</span></div>
+                                <div class="stat-row"><span class="stat-label">Total:</span><span class="stat-value">${totalTokens} tokens</span></div>
                                 <div class="stat-row"><span class="stat-label">Rate:</span><span class="stat-value">${outputRate} t/s</span></div>
                                 ${thinkingTime > 0 ? `<div class="stat-row"><span class="stat-label">Time:</span><span class="stat-value">${thinkingTime}s</span></div>` : ''}
                             </div>
