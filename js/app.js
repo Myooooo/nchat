@@ -709,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let reasoningText = '', reasoningContainer = null, reasoningSummaryElement = null;
         let thinkingStartTime = null, reasoningFinished = false;
         let thinkingTime = null;
+        let inThinkingMode = false;
         let startTime = null;
         let started = false;
         let promptTokens = 0, completionTokens = 0, totalTokens = 0;
@@ -789,27 +790,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (delta.content) {
                             let content = delta.content;
+                            
+                            if (inThinkingMode) {
+                                let thinkEnd = content.indexOf('</think>');
+                                if (thinkEnd !== -1) {
+                                    reasoningText += content.substring(0, thinkEnd);
+                                    content = content.substring(thinkEnd + 6);
+                                    inThinkingMode = false;
+                                } else {
+                                    reasoningText += content;
+                                    if (reasoningContainer) {
+                                        reasoningContainer.innerHTML = renderMessageContent(reasoningText);
+                                    }
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    continue;
+                                }
+                            }
+                            
                             let thinkStart = content.indexOf('<think>');
                             while (thinkStart !== -1) {
                                 let thinkEnd = content.indexOf('</think>', thinkStart);
-                                if (thinkEnd === -1) break;
-                                const thinkContent = content.substring(thinkStart + 6, thinkEnd);
-                                if (!reasoningContainer) {
-                                    thinkingStartTime = performance.now();
-                                    const details = document.createElement('details');
-                                    details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
-                                    assistantMessageElement.querySelector('.message-content').prepend(details);
-                                    reasoningSummaryElement = details.querySelector('summary');
-                                    reasoningContainer = details.querySelector('.reasoning-content');
-                                    details.open = true;
+                                if (thinkEnd === -1) {
+                                    reasoningText += content.substring(thinkStart + 6);
+                                    content = '';
+                                    inThinkingMode = true;
+                                    if (!reasoningContainer) {
+                                        thinkingStartTime = performance.now();
+                                        const details = document.createElement('details');
+                                        details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
+                                        assistantMessageElement.querySelector('.message-content').prepend(details);
+                                        reasoningSummaryElement = details.querySelector('summary');
+                                        reasoningContainer = details.querySelector('.reasoning-content');
+                                        details.open = true;
+                                    }
+                                    if (reasoningContainer) {
+                                        reasoningContainer.innerHTML = renderMessageContent(reasoningText);
+                                    }
+                                    break;
+                                } else {
+                                    const thinkContent = content.substring(thinkStart + 6, thinkEnd);
+                                    if (!reasoningContainer) {
+                                        thinkingStartTime = performance.now();
+                                        const details = document.createElement('details');
+                                        details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
+                                        assistantMessageElement.querySelector('.message-content').prepend(details);
+                                        reasoningSummaryElement = details.querySelector('summary');
+                                        reasoningContainer = details.querySelector('.reasoning-content');
+                                        details.open = true;
+                                    }
+                                    reasoningText += thinkContent;
+                                    reasoningContainer.innerHTML = renderMessageContent(reasoningText);
+                                    content = content.substring(0, thinkStart) + content.substring(thinkEnd + 6);
+                                    thinkStart = content.indexOf('<think>');
                                 }
-                                reasoningText += thinkContent;
-                                reasoningContainer.innerHTML = renderMessageContent(reasoningText);
-                                content = content.substring(0, thinkStart) + content.substring(thinkEnd + 6);
-                                thinkStart = content.indexOf('<think>');
                             }
                             
-                            if (content) {
+                            if (content && !inThinkingMode) {
                                 if (thinkingStartTime && !reasoningFinished) {
                                     thinkingTime = (performance.now() - thinkingStartTime) / 1000;
                                     reasoningSummaryElement.textContent = '已思考 (用时 ' + thinkingTime.toFixed(1) + '秒)';
