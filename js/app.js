@@ -376,19 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     chatContainer.innerHTML = '';
                     conversationHistory.forEach(msg => {
                         if (msg.role === 'user') {
-                            let html = '';
-                            if (Array.isArray(msg.content)) {
-                                const textPart = msg.content.find(p => p.type === 'text');
-                                const text = textPart ? textPart.text : '';
-                                html = text ? `<p>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
-                                const images = msg.content.filter(p => p.type === 'image_url');
-                                if (images.length > 0) {
-                                    html += `<div class="message-images">${images.map(img => ` <img src="${img.image_url.url}">`).join('')}</div>`;
-                                }
-                            } else {
-                                html = msg.content;
-                            }
-                            addMessage({ id: msg.id, role: 'user', content: html, isHtml: true });
+                            addMessage({ id: msg.id, role: 'user', content: renderUserMessageHtml(msg.content), isHtml: true });
                         } else if (msg.role === 'assistant') {
                             addMessage({ id: msg.id, role: 'assistant', content: msg.content, reasoning: msg.reasoning, stats: msg.stats });
                         }
@@ -433,9 +421,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector(`[data-id='${id}']`)?.remove();
     };
 
+    const truncateConversation = (startIndex) => {
+        const messagesToRemove = conversationHistory.slice(startIndex);
+        messagesToRemove.forEach(msg => { document.querySelector(`[data-id='${msg.id}']`)?.remove(); });
+        conversationHistory.splice(startIndex);
+    };
+
     const renderMessageContent = (content) => {
         marked.setOptions({ breaks: true, gfm: true });
         return DOMPurify.sanitize(marked.parse(content), { ADD_ATTR: ['target'] });
+    };
+
+    const renderUserMessageHtml = (contentArrayOrString) => {
+        let text = '', images = [];
+        if (Array.isArray(contentArrayOrString)) {
+            const textPart = contentArrayOrString.find(p => p.type === 'text');
+            text = textPart ? textPart.text : '';
+            images = contentArrayOrString.filter(p => p.type === 'image_url').map(img => img.image_url.url);
+        } else {
+            text = contentArrayOrString || '';
+        }
+        let html = text ? `<p>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
+        if (images.length > 0) {
+            html += `<div class="message-images">${images.map(url => ` <img src="${url}">`).join('')}</div>`;
+        }
+        return html;
     };
 
     const enterEditMode = (messageElement, id) => {
@@ -461,20 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editIndex === -1) return;
         const messageToUpdate = conversationHistory[editIndex];
         
-        // Truncate history after this message for consistency
-        const messagesToRemove = conversationHistory.slice(editIndex + 1);
-        messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
-        conversationHistory.splice(editIndex + 1);
+        truncateConversation(editIndex + 1);
 
         if (messageToUpdate.role === 'user') {
             const textPart = messageToUpdate.content.find(p => p.type === 'text');
             if (textPart) textPart.text = newContent; else messageToUpdate.content.unshift({ type: 'text', text: newContent });
             
-            let html = `<p>${newContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
-            const images = messageToUpdate.content.filter(p => p.type === 'image_url');
-            if (images.length > 0) html += `<div class="message-images">${images.map(img => ` <img src="${img.image_url.url}">`).join('')}</div>`;
-            
-            document.querySelector(`[data-id='${id}'] .message-content`).innerHTML = html;
+            document.querySelector(`[data-id='${id}'] .message-content`).innerHTML = renderUserMessageHtml(messageToUpdate.content);
             fetchAssistantResponse();
         } else {
              // Should generally not happen as we regenerate assistant, but support direct edit
@@ -490,19 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (msgIndex === -1) return;
         const targetMsg = conversationHistory[msgIndex];
 
-        if (targetMsg.role === 'user') {
-            // Remove subsequent messages and re-fetch for this user message
-            const messagesToRemove = conversationHistory.slice(msgIndex + 1);
-            messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
-            conversationHistory.splice(msgIndex + 1);
-            fetchAssistantResponse();
-        } else if (targetMsg.role === 'assistant') {
-            // Remove this assistant message and any subsequent, then re-fetch
-            const messagesToRemove = conversationHistory.slice(msgIndex);
-            messagesToRemove.forEach(msg => document.querySelector(`[data-id='${msg.id}']`)?.remove());
-            conversationHistory.splice(msgIndex);
-            fetchAssistantResponse();
-        }
+        const truncateIndex = targetMsg.role === 'user' ? msgIndex + 1 : msgIndex;
+        truncateConversation(truncateIndex);
+        fetchAssistantResponse();
     };
 
     const addMessage = (message) => {
@@ -598,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // If adding message while loading, disable buttons immediately
         if(isAssistantResponding) {
-             messageElement.querySelectorAll('.footer-btn').forEach(btn => btn.disabled = true);
+             messageElement.querySelectorAll('.footer-btn').forEach(btn => { btn.disabled = true; });
         }
 
         // Auto-save conversation after adding a message
@@ -619,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imagePreviewContainer.addEventListener('click', e => {
         if (e.target.classList.contains('remove-image-btn')) {
-            stagedImages = stagedImages.filter(img => img.id != e.target.dataset.id);
+            stagedImages = stagedImages.filter(img => String(img.id) !== String(e.target.dataset.id));
             renderPreviews();
         }
     });
@@ -675,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.disabled = isProcessing;
         uploadBtn.disabled = isProcessing;
         // Chat history buttons
-        document.querySelectorAll('.footer-btn').forEach(btn => btn.disabled = isProcessing);
+        document.querySelectorAll('.footer-btn').forEach(btn => { btn.disabled = isProcessing; });
         
         const sendIcon = sendBtn.querySelector('.send-icon');
         const stopIcon = sendBtn.querySelector('.stop-icon');
@@ -713,6 +706,36 @@ document.addEventListener('DOMContentLoaded', () => {
         let startTime = null;
         let started = false;
         let promptTokens = 0, completionTokens = 0, totalTokens = 0;
+
+        const ensureReasoningContainer = () => {
+            if (!reasoningContainer) {
+                thinkingStartTime = performance.now();
+                const details = document.createElement('details');
+                details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
+                assistantMessageElement.querySelector('.message-content').prepend(details);
+                reasoningSummaryElement = details.querySelector('summary');
+                reasoningContainer = details.querySelector('.reasoning-content');
+                details.open = true;
+            }
+        };
+
+        const appendReasoning = (text) => {
+            ensureReasoningContainer();
+            reasoningText += text;
+            reasoningContainer.innerHTML = renderMessageContent(reasoningText);
+        };
+
+        const finishReasoning = () => {
+            if (thinkingStartTime && !reasoningFinished) {
+                thinkingTime = (performance.now() - thinkingStartTime) / 1000;
+                if (reasoningSummaryElement) {
+                    reasoningSummaryElement.textContent = '已思考 (用时 ' + thinkingTime.toFixed(1) + '秒)';
+                }
+                reasoningFinished = true;
+                const details = assistantMessageElement?.querySelector('details');
+                if (details) details.open = false;
+            }
+        };
 
         try {
             const historyToSend = conversationHistory.map(({ id, ...rest }) => rest);
@@ -775,17 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         if (delta.reasoning_content || delta.reasoning) {
-                            if (!reasoningContainer) {
-                                thinkingStartTime = performance.now();
-                                const details = document.createElement('details');
-                                details.innerHTML = `<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>`;
-                                assistantMessageElement.querySelector('.message-content').prepend(details);
-                                reasoningSummaryElement = details.querySelector('summary');
-                                reasoningContainer = details.querySelector('.reasoning-content');
-                                details.open = true; // Auto open reasoning
-                            }
-                            reasoningText += delta.reasoning_content ? delta.reasoning_content : delta.reasoning;
-                            reasoningContainer.innerHTML = renderMessageContent(reasoningText);
+                            appendReasoning(delta.reasoning_content || delta.reasoning);
                         }
 
                         if (delta.content) {
@@ -794,14 +807,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (inThinkingMode) {
                                 let thinkEnd = content.indexOf('</think>');
                                 if (thinkEnd !== -1) {
-                                    reasoningText += content.substring(0, thinkEnd);
-                                    content = content.substring(thinkEnd + 6);
+                                    appendReasoning(content.substring(0, thinkEnd));
+                                    content = content.substring(thinkEnd + 8);
                                     inThinkingMode = false;
                                 } else {
-                                    reasoningText += content;
-                                    if (reasoningContainer) {
-                                        reasoningContainer.innerHTML = renderMessageContent(reasoningText);
-                                    }
+                                    appendReasoning(content);
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
                                     continue;
                                 }
@@ -811,49 +821,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             while (thinkStart !== -1) {
                                 let thinkEnd = content.indexOf('</think>', thinkStart);
                                 if (thinkEnd === -1) {
-                                    reasoningText += content.substring(thinkStart + 6);
+                                    appendReasoning(content.substring(thinkStart + 7));
                                     content = '';
                                     inThinkingMode = true;
-                                    if (!reasoningContainer) {
-                                        thinkingStartTime = performance.now();
-                                        const details = document.createElement('details');
-                                        details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
-                                        assistantMessageElement.querySelector('.message-content').prepend(details);
-                                        reasoningSummaryElement = details.querySelector('summary');
-                                        reasoningContainer = details.querySelector('.reasoning-content');
-                                        details.open = true;
-                                    }
-                                    if (reasoningContainer) {
-                                        reasoningContainer.innerHTML = renderMessageContent(reasoningText);
-                                    }
                                     break;
                                 } else {
-                                    const thinkContent = content.substring(thinkStart + 6, thinkEnd);
-                                    if (!reasoningContainer) {
-                                        thinkingStartTime = performance.now();
-                                        const details = document.createElement('details');
-                                        details.innerHTML = '<summary>正在思考...</summary><div class="reasoning-wrapper"><div class="reasoning-content"></div></div>';
-                                        assistantMessageElement.querySelector('.message-content').prepend(details);
-                                        reasoningSummaryElement = details.querySelector('summary');
-                                        reasoningContainer = details.querySelector('.reasoning-content');
-                                        details.open = true;
-                                    }
-                                    reasoningText += thinkContent;
-                                    reasoningContainer.innerHTML = renderMessageContent(reasoningText);
-                                    content = content.substring(0, thinkStart) + content.substring(thinkEnd + 6);
+                                    appendReasoning(content.substring(thinkStart + 7, thinkEnd));
+                                    content = content.substring(0, thinkStart) + content.substring(thinkEnd + 8);
                                     thinkStart = content.indexOf('<think>');
                                 }
                             }
                             
                             if (content && !inThinkingMode) {
-                                if (thinkingStartTime && !reasoningFinished) {
-                                    thinkingTime = (performance.now() - thinkingStartTime) / 1000;
-                                    reasoningSummaryElement.textContent = '已思考 (用时 ' + thinkingTime.toFixed(1) + '秒)';
-                                    reasoningFinished = true;
-                                    if (assistantMessageElement.querySelector('details')) {
-                                        assistantMessageElement.querySelector('details').open = false;
-                                    }
-                                }
+                                finishReasoning();
                                 if (!finalContentElement) {
                                     finalContentElement = document.createElement('div');
                                     assistantMessageElement.querySelector('.message-content').appendChild(finalContentElement);
@@ -882,6 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addMessage({ role: 'error', content: `请求失败: ${error.message}` });
             }
         } finally {
+            finishReasoning();
             if (assistantMessage) {
                 const hasContent = assistantMessage.content.trim() || reasoningText.trim();
                 if (hasContent) {
@@ -959,14 +940,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userText) {
             userMessageContent.push({ type: 'text', text: userText });
         }
-        stagedImages.forEach(img => userMessageContent.push({ type: 'image_url', image_url: { url: img.dataUrl } }));
-
-        let messageHtml = userText ? `<p>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
-        if (stagedImages.length > 0) messageHtml += `<div class="message-images">${stagedImages.map(img => ` <img src="${img.dataUrl}">`).join('')}</div>`;
+        stagedImages.forEach(img => { userMessageContent.push({ type: 'image_url', image_url: { url: img.dataUrl } }); });
 
         const messageId = Date.now();
         conversationHistory.push({ id: messageId, role: 'user', content: userMessageContent });
-        addMessage({ id: messageId, role: 'user', content: messageHtml, isHtml: true });
+        addMessage({ id: messageId, role: 'user', content: renderUserMessageHtml(userMessageContent), isHtml: true });
 
         userInput.value = ''; autoAdjustTextareaHeight(userInput);
         stagedImages = []; renderPreviews();
@@ -1042,19 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     chatContainer.innerHTML = '';
                     conversationHistory.forEach(msg => {
                         if (msg.role === 'user') {
-                            let html = '';
-                            if (Array.isArray(msg.content)) {
-                                const textPart = msg.content.find(p => p.type === 'text');
-                                const text = textPart ? textPart.text : '';
-                                html = text ? `<p>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
-                                const images = msg.content.filter(p => p.type === 'image_url');
-                                if (images.length > 0) {
-                                    html += `<div class="message-images">${images.map(img => ` <img src="${img.image_url.url}">`).join('')}</div>`;
-                                }
-                            } else {
-                                html = msg.content;
-                            }
-                            addMessage({ id: msg.id, role: 'user', content: html, isHtml: true });
+                            addMessage({ id: msg.id, role: 'user', content: renderUserMessageHtml(msg.content), isHtml: true });
                         } else if (msg.role === 'assistant') {
                             addMessage({ id: msg.id, role: 'assistant', content: msg.content, reasoning: msg.reasoning, stats: msg.stats });
                         }
